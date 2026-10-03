@@ -17,7 +17,7 @@ import CommunicationPage from '../features/CommunicationPage';
 const nav:any[]=[
  ['/owner','Command Center',DashboardRounded],['/owner/students','Students',PeopleRounded],['/owner/academics','Academics',SchoolRounded],
  ['/owner/attendance','Attendance',EventAvailableRounded],['/owner/timetable','Timetable',CalendarMonthRounded],['/owner/faculty','Faculty',PeopleRounded],['/owner/homework','Homework',AssignmentRounded],['/owner/results','Results & Analytics',BarChartRounded],['/owner/intelligence','AI Intelligence',AutoAwesomeRounded],['/owner/admissions','Admissions CRM',PeopleRounded],['/owner/communication','Communication',ChatRounded],['/owner/exams','Exams & Results',QuizRounded],
- ['/owner/finance','Finance',AccountBalanceWalletRounded],['/owner/admissions','Admissions',CampaignRounded],['/owner/communication','Communication',NotificationsRounded],
+ ['/owner/finance','Finance',AccountBalanceWalletRounded],
  ['/owner/reports','Reports',BarChartRounded],['/owner/support','Support',SupportAgentRounded],['/owner/settings','Settings',SettingsRounded]
 ];
 
