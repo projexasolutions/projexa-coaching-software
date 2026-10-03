@@ -10,4 +10,6 @@ import java.util.UUID;
 public interface BatchRepository extends JpaRepository<Batch, UUID> {
     List<Batch> findAllByTenantId(UUID tenantId);
     Optional<Batch> findByIdAndTenantId(UUID id, UUID tenantId);
+    boolean existsByTenantIdAndAcademicYearIdAndName(UUID tenantId, UUID academicYearId, String name);
+    boolean existsByTenantIdAndAcademicYearIdAndNameAndIdNot(UUID tenantId, UUID academicYearId, String name, UUID id);
 }
