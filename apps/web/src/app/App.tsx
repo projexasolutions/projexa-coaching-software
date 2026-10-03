@@ -8,6 +8,7 @@ import {LiveDashboard,LiveStudentsPage,LiveStudentProfile,LiveAcademicsPage,Live
 import TimetablePage from '../features/TimetablePage';
 import FacultyPage from '../features/FacultyPage';
 import HomeworkPage from '../features/HomeworkPage';
+import ExamsPage from '../features/ExamsPage';
 
 const nav:any[]=[
  ['/owner','Command Center',DashboardRounded],['/owner/students','Students',PeopleRounded],['/owner/academics','Academics',SchoolRounded],
@@ -41,6 +42,7 @@ export default function App(){return <BrowserRouter><Routes>
  <Route path="/owner/timetable" element={<Guard><Shell><Page title="Timetable Management" subtitle="Schedule batches, teachers and classrooms with conflict protection."><TimetablePage/></Page></Shell></Guard>}/>
  <Route path="/owner/faculty" element={<Guard><Shell><Page title="Faculty Management" subtitle="Manage teachers, teaching assignments and classroom resources."><FacultyPage/></Page></Shell></Guard>}/>
  <Route path="/owner/homework" element={<Guard><Shell><Page title="Teaching & Learning" subtitle="Create homework and track student submissions."><HomeworkPage/></Page></Shell></Guard>}/>
- {['exams','admissions','communication','reports','support','settings'].map(k=><Route key={k} path={`/owner/${k}`} element={<Guard><Shell><Page title={k[0].toUpperCase()+k.slice(1)} subtitle="Operational module."><Placeholder title={k[0].toUpperCase()+k.slice(1)}/></Page></Shell></Guard>}/>)}
+ <Route path="/owner/exams" element={<Guard><Shell><Page title="Exams & Results" subtitle="Build exams, configure subjects and manage question sets."><ExamsPage/></Page></Shell></Guard>}/>
+ {['admissions','communication','reports','support','settings'].map(k=><Route key={k} path={`/owner/${k}`} element={<Guard><Shell><Page title={k[0].toUpperCase()+k.slice(1)} subtitle="Operational module."><Placeholder title={k[0].toUpperCase()+k.slice(1)}/></Page></Shell></Guard>}/>)}
  <Route path="*" element={<Navigate to="/owner" replace/>}/>
  </Routes></BrowserRouter>}
