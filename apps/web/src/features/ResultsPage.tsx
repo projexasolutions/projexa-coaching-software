@@ -1,0 +1,25 @@
+import {useEffect,useState} from 'react';
+import {Alert,Box,Button,Card,CardContent,Chip,Stack,Table,TableBody,TableCell,TableHead,TableRow,Typography} from '@mui/material';
+import {AnalyticsRounded,PublishRounded,RefreshRounded} from '@mui/icons-material';
+import {api} from '../services';
+
+function unwrap(r:any){return r?.data?.data??r?.data??[]}
+function err(e:any,f:string){return e?.response?.data?.message||e?.response?.data?.error?.message||f}
+
+export default function ResultsPage(){
+ const [exams,setExams]=useState<any[]>([]),[examId,setExamId]=useState(''),[students,setStudents]=useState<any[]>([]),[dashboard,setDashboard]=useState<any|null>(null),[error,setError]=useState('');
+ async function loadExams(){try{const r=await api.get('/exams');const x=unwrap(r);setExams(x);if(!examId&&x[0])setExamId(x[0].id)}catch(e:any){setError(err(e,'Unable to load exams'))}}
+ async function load(){if(!examId)return;try{setError('');const [s,d]=await Promise.all([api.get('/results/exams/'+examId+'/students'),api.get('/results/exams/'+examId+'/dashboard')]);setStudents(unwrap(s));setDashboard(unwrap(d))}catch(e:any){setError(err(e,'Unable to load results'))}}
+ useEffect(()=>{loadExams()},[]);useEffect(()=>{load()},[examId]);
+ async function generate(){try{await api.post('/results/exams/'+examId+'/generate');await load()}catch(e:any){setError(err(e,'Unable to generate results'))}}
+ async function publish(){if(!window.confirm('Publish these results to students and parents?'))return;try{await api.post('/results/exams/'+examId+'/publish');await load();await loadExams()}catch(e:any){setError(err(e,'Unable to publish results'))}}
+ const selected=exams.find(e=>e.id===examId);
+ return <Box>
+  <Stack direction={{xs:'column',md:'row'}} spacing={2} sx={{mb:2,alignItems:{xs:'stretch',md:'center'},justifyContent:'space-between'}}><Typography sx={{fontSize:13,color:'#64748b'}}>Generate ranks, publish results and inspect performance by exam and subject.</Typography><Stack direction="row" spacing={1}><Button startIcon={<RefreshRounded/>} onClick={()=>{loadExams();load()}} sx={{textTransform:'none'}}>Refresh</Button>{examId&&<Button variant="contained" startIcon={<AnalyticsRounded/>} onClick={generate} sx={{textTransform:'none'}}>Generate results</Button>}{examId&&<Button variant="outlined" startIcon={<PublishRounded/>} onClick={publish} sx={{textTransform:'none'}}>Publish</Button>}</Stack></Stack>
+  {error&&<Alert severity="error" sx={{mb:2}}>{error}</Alert>}
+  <Card variant="outlined" sx={{borderRadius:3,mb:2}}><CardContent><Stack direction={{xs:'column',md:'row'}} spacing={2} sx={{alignItems:{md:'center'}}}><Typography sx={{fontWeight:900}}>Exam</Typography><select value={examId} onChange={e=>setExamId(e.target.value)} style={{minWidth:280,padding:10,borderRadius:8,border:'1px solid #cbd5e1'}}>{exams.map(e=><option key={e.id} value={e.id}>{e.name} · {e.exam_type}</option>)}</select>{selected&&<Chip label={selected.status}/>}</Stack></CardContent></Card>
+  {dashboard&&<><Box sx={{display:'grid',gridTemplateColumns:{xs:'1fr 1fr',md:'repeat(5,1fr)'},gap:2,mb:2}}>{[['Students',dashboard.summary.students],['Average %',Number(dashboard.summary.average_percentage||0).toFixed(2)],['Highest %',Number(dashboard.summary.highest_percentage||0).toFixed(2)],['Passed',dashboard.summary.pass_count],['Failed',dashboard.summary.fail_count]].map(([a,b])=><Card key={String(a)} variant="outlined" sx={{borderRadius:3}}><CardContent><Typography sx={{fontSize:11,color:'#64748b'}}>{a}</Typography><Typography sx={{fontSize:24,fontWeight:900,mt:.5}}>{b}</Typography></CardContent></Card>)}</Box>
+  <Card variant="outlined" sx={{borderRadius:3,mb:2}}><CardContent><Typography sx={{fontWeight:900,mb:1}}>Subject performance</Typography><Table size="small"><TableHead><TableRow><TableCell>Subject</TableCell><TableCell>Students</TableCell><TableCell>Average</TableCell><TableCell>Highest</TableCell></TableRow></TableHead><TableBody>{(dashboard.subjects||[]).map((s:any)=><TableRow key={s.subject_id}><TableCell>{s.subject_name}</TableCell><TableCell>{s.students}</TableCell><TableCell>{Number(s.average_marks).toFixed(2)}</TableCell><TableCell>{Number(s.highest_marks).toFixed(2)}</TableCell></TableRow>)}</TableBody></Table></CardContent></Card>
+  <Card variant="outlined" sx={{borderRadius:3}}><CardContent><Typography sx={{fontWeight:900,mb:1}}>Student ranking</Typography><Table size="small"><TableHead><TableRow><TableCell>Rank</TableCell><TableCell>Student</TableCell><TableCell>Marks</TableCell><TableCell>%</TableCell><TableCell>Status</TableCell></TableRow></TableHead><TableBody>{students.map(s=><TableRow key={s.student_id}><TableCell sx={{fontWeight:900}}>{s.rank??'—'}</TableCell><TableCell>{s.first_name} {s.last_name||''}<Typography sx={{fontSize:11,color:'#64748b'}}>{s.admission_number}</Typography></TableCell><TableCell>{Number(s.obtained_marks||0).toFixed(2)} / {Number(s.total_marks||0).toFixed(2)}</TableCell><TableCell>{Number(s.percentage||0).toFixed(2)}%</TableCell><TableCell><Chip size="small" label={s.status}/></TableCell></TableRow>)}</TableBody></Table></CardContent></Card></>}
+ </Box>
+}
