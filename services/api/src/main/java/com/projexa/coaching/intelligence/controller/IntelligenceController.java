@@ -98,6 +98,36 @@ public class IntelligenceController {
     return out;
   }
 
+  @PostMapping("/students/{studentId}/watchlist")
+  @PreAuthorize("hasAuthority('dashboard.read') or hasAuthority('students.manage')")
+  public Map<String,Object> watchlist(@PathVariable UUID studentId,@RequestBody Map<String,String> req){
+    UUID t=TenantContextHolder.getRequired();
+    if(count("select count(*) from students where id=? and tenant_id=? and status='ACTIVE'",studentId,t)==0) throw new IllegalArgumentException("Student not found");
+    String reason=req.getOrDefault("reason","AI risk signal");
+    db.update("insert into student_watchlist(id,tenant_id,student_id,reason,active) values(?,?,?,?,true) on conflict(tenant_id,student_id) do update set reason=excluded.reason,active=true",
+      UUID.randomUUID(),t,studentId,reason);
+    return Map.of("watchlisted",true,"studentId",studentId);
+  }
+
+  @PostMapping("/students/{studentId}/task")
+  @PreAuthorize("hasAuthority('dashboard.read') or hasAuthority('students.manage')")
+  public Map<String,Object> task(@PathVariable UUID studentId,@RequestBody Map<String,String> req){
+    UUID t=TenantContextHolder.getRequired();
+    if(count("select count(*) from students where id=? and tenant_id=? and status='ACTIVE'",studentId,t)==0) throw new IllegalArgumentException("Student not found");
+    String title=req.getOrDefault("title","Follow up on AI risk signal");
+    UUID assignedTo=req.get("assignedTo")==null||req.get("assignedTo").isBlank()?null:UUID.fromString(req.get("assignedTo"));
+    UUID id=UUID.randomUUID();
+    db.update("insert into staff_tasks(id,tenant_id,assigned_to,student_id,title,status) values(?,?,?,?,?,'OPEN')",id,t,assignedTo,studentId,title);
+    return Map.of("taskId",id,"created",true);
+  }
+
+  @GetMapping("/tasks")
+  @PreAuthorize("hasAuthority('dashboard.read') or hasAuthority('students.manage')")
+  public List<Map<String,Object>> tasks(){
+    UUID t=TenantContextHolder.getRequired();
+    return db.queryForList("select id,assigned_to,student_id,title,due_at,status,created_at from staff_tasks where tenant_id=? and status<>'DONE' order by due_at nulls last,created_at desc limit 100",t);
+  }
+
   private void requireExam(UUID t,UUID id){if(count("select count(*) from exams where id=? and tenant_id=?",id,t)==0)throw new IllegalArgumentException("Exam not found");}
   private int count(String sql,Object... args){Integer n=db.queryForObject(sql,Integer.class,args);return n==null?0:n;}
 }
