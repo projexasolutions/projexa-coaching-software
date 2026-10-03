@@ -43,6 +43,18 @@ public class TimetableController {
     return db.queryForList(sql.toString(),args.toArray());
   }
 
+  @GetMapping("/resources")
+  @PreAuthorize("hasAuthority('timetable.manage') or hasAuthority('dashboard.read')")
+  public Map<String,Object> resources(){
+    UUID t=TenantContextHolder.getRequired();
+    return Map.of(
+      "batches",db.queryForList("select id,name from batches where tenant_id=? and status='ACTIVE' order by name",t),
+      "subjects",db.queryForList("select id,name from subjects where tenant_id=? and active=true order by name",t),
+      "teachers",db.queryForList("select id,concat_ws(' ',first_name,last_name) name from teachers where tenant_id=? and status='ACTIVE' order by first_name,last_name",t),
+      "classrooms",db.queryForList("select id,name from classrooms where tenant_id=? and active=true order by name",t)
+    );
+  }
+
   @GetMapping("/week")
   @PreAuthorize("hasAuthority('timetable.manage') or hasAuthority('dashboard.read')")
   public List<Map<String,Object>> week(@RequestParam UUID batchId){
