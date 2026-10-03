@@ -1,3 +1,25 @@
 package com.projexa.coaching.academics.service;
-import com.projexa.coaching.common.exceptions.ApiException; import com.projexa.coaching.common.tenant.TenantContextHolder; import com.projexa.coaching.academics.entity.Subject; import com.projexa.coaching.academics.repository.SubjectRepository; import org.springframework.stereotype.Service; import java.util.*;
-@Service public class SubjectService { private final SubjectRepository repo; public SubjectService(SubjectRepository repo){this.repo=repo;} public List<Subject> list(){return repo.findAllByTenantId(TenantContextHolder.getRequired());} public Subject get(UUID id){return repo.findByIdAndTenantId(id,TenantContextHolder.getRequired()).orElseThrow(()->new ApiException("NOT_FOUND","Resource not found"));} public Subject create(Subject item){item.setTenantId(TenantContextHolder.getRequired()); return repo.save(item);} public Subject update(UUID id,Subject item){Subject current=get(id); copy(item,current); return repo.save(current);} public void delete(UUID id){repo.delete(get(id));} private void copy(Subject s,Subject t){t.setName(s.getName());t.setCode(s.getCode());t.setActive(s.isActive());}}
+
+import com.projexa.coaching.common.exceptions.ApiException;
+import com.projexa.coaching.common.tenant.TenantContextHolder;
+import com.projexa.coaching.academics.entity.Subject;
+import com.projexa.coaching.academics.repository.SubjectRepository;
+import org.springframework.stereotype.Service;
+import java.util.*;
+
+@Service
+public class SubjectService {
+    private final SubjectRepository repo;
+    public SubjectService(SubjectRepository repo){this.repo=repo;}
+    public List<Subject> list(){return repo.findAllByTenantId(TenantContextHolder.getRequired());}
+    public Subject get(UUID id){return repo.findByIdAndTenantId(id,TenantContextHolder.getRequired()).orElseThrow(()->new ApiException("NOT_FOUND","Subject not found"));}
+    public Subject create(Subject item){validate(item);item.setTenantId(TenantContextHolder.getRequired());return repo.save(item);}
+    public Subject update(UUID id,Subject item){validate(item);Subject current=get(id);copy(item,current);return repo.save(current);}
+    public void delete(UUID id){Subject current=get(id);current.setActive(false);repo.save(current);}
+    private void validate(Subject x){
+        if(x==null||x.getName()==null||x.getName().trim().isEmpty())throw new ApiException("VALIDATION_ERROR","Subject name is required");
+        x.setName(x.getName().trim());
+        if(x.getCode()!=null){String c=x.getCode().trim();x.setCode(c.isEmpty()?null:c.toUpperCase());}
+    }
+    private void copy(Subject s,Subject t){t.setName(s.getName());t.setCode(s.getCode());t.setActive(s.isActive());}
+}
