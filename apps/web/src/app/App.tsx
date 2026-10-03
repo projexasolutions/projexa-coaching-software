@@ -6,10 +6,11 @@ import LoginPage from '../features/auth/LoginPage';
 import {useAuth} from '../features/auth/authStore';
 import {LiveDashboard,LiveStudentsPage,LiveStudentProfile,LiveAcademicsPage,LiveAttendancePage,LiveFinancePage} from '../features/Phase1Pages';
 import TimetablePage from '../features/TimetablePage';
+import FacultyPage from '../features/FacultyPage';
 
 const nav:any[]=[
  ['/owner','Command Center',DashboardRounded],['/owner/students','Students',PeopleRounded],['/owner/academics','Academics',SchoolRounded],
- ['/owner/attendance','Attendance',EventAvailableRounded],['/owner/timetable','Timetable',CalendarMonthRounded],['/owner/exams','Exams & Results',QuizRounded],
+ ['/owner/attendance','Attendance',EventAvailableRounded],['/owner/timetable','Timetable',CalendarMonthRounded],['/owner/faculty','Faculty',PeopleRounded],['/owner/exams','Exams & Results',QuizRounded],
  ['/owner/finance','Finance',AccountBalanceWalletRounded],['/owner/admissions','Admissions',CampaignRounded],['/owner/communication','Communication',NotificationsRounded],
  ['/owner/reports','Reports',BarChartRounded],['/owner/support','Support',SupportAgentRounded],['/owner/settings','Settings',SettingsRounded]
 ];
@@ -37,6 +38,7 @@ export default function App(){return <BrowserRouter><Routes>
  <Route path="/owner/attendance" element={<Guard><Shell><Page title="Attendance" subtitle="Create sessions and mark live attendance."><LiveAttendancePage/></Page></Shell></Guard>}/>
  <Route path="/owner/finance" element={<Guard><Shell><Page title="Finance" subtitle="Manage invoices, collections and outstanding fees."><LiveFinancePage/></Page></Shell></Guard>}/>
  <Route path="/owner/timetable" element={<Guard><Shell><Page title="Timetable Management" subtitle="Schedule batches, teachers and classrooms with conflict protection."><TimetablePage/></Page></Shell></Guard>}/>
+ <Route path="/owner/faculty" element={<Guard><Shell><Page title="Faculty Management" subtitle="Manage teachers, teaching assignments and classroom resources."><FacultyPage/></Page></Shell></Guard>}/>
  {['exams','admissions','communication','reports','support','settings'].map(k=><Route key={k} path={`/owner/${k}`} element={<Guard><Shell><Page title={k[0].toUpperCase()+k.slice(1)} subtitle="Operational module."><Placeholder title={k[0].toUpperCase()+k.slice(1)}/></Page></Shell></Guard>}/>)}
  <Route path="*" element={<Navigate to="/owner" replace/>}/>
  </Routes></BrowserRouter>}
