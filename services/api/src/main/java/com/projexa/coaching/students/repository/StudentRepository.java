@@ -10,4 +10,6 @@ import java.util.UUID;
 public interface StudentRepository extends JpaRepository<Student, UUID> {
     List<Student> findAllByTenantId(UUID tenantId);
     Optional<Student> findByIdAndTenantId(UUID id, UUID tenantId);
+    boolean existsByTenantIdAndAdmissionNumber(UUID tenantId, String admissionNumber);
+    boolean existsByTenantIdAndAdmissionNumberAndIdNot(UUID tenantId, String admissionNumber, UUID id);
 }
