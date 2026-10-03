@@ -1,0 +1,17 @@
+import {useEffect,useState} from 'react';
+import {Alert,Box,Button,Card,CardContent,Divider,Stack,TextField,Typography} from '@mui/material';
+import {SendRounded} from '@mui/icons-material';
+import {api} from '../services';
+function unwrap(r:any){return r?.data?.data??r?.data??[]}
+export default function CommunicationPage(){
+ const [items,setItems]=useState<any[]>([]),[active,setActive]=useState<any>(),[messages,setMessages]=useState<any[]>([]),[body,setBody]=useState(''),[error,setError]=useState('');
+ async function load(){try{const r=await api.get('/communication/conversations');setItems(unwrap(r))}catch(e:any){setError(e?.response?.data?.message||'Unable to load conversations')}}
+ async function open(id:string){try{const r=await api.get('/communication/conversations/'+id+'/messages');setActive(items.find(x=>x.id===id));setMessages(unwrap(r));await api.post('/communication/conversations/'+id+'/read')}catch(e:any){setError(e?.response?.data?.message||'Unable to open conversation')}}
+ async function send(){if(!active||!body.trim())return;try{await api.post('/communication/conversations/'+active.id+'/messages',{body});setBody('');await open(active.id);await load()}catch(e:any){setError(e?.response?.data?.message||'Unable to send message')}}
+ useEffect(()=>{load()},[]);
+ return <Box sx={{display:'grid',gridTemplateColumns:{xs:'1fr',md:'320px 1fr'},gap:2,height:'calc(100vh - 180px)',minHeight:500}}>
+  {error&&<Alert severity="error" sx={{position:'fixed',top:80,right:20,zIndex:5}}>{error}</Alert>}
+  <Card variant="outlined" sx={{borderRadius:3,overflow:'auto'}}><CardContent><Typography sx={{fontWeight:900,mb:1}}>Messages</Typography>{!items.length?<Typography sx={{py:5,color:'#64748b',fontSize:13}}>No conversations yet.</Typography>:items.map(x=><Box key={x.id} onClick={()=>open(x.id)} sx={{p:1.5,borderRadius:2,cursor:'pointer',bgcolor:active?.id===x.id?'#eef6ff':'transparent','&:hover':{bgcolor:'#f5f7fb'}}}><Typography sx={{fontWeight:800,fontSize:14}}>{x.title||x.type}</Typography><Typography sx={{fontSize:11,color:'#64748b'}}>{x.member_count||0} members · {x.last_message_at?new Date(x.last_message_at).toLocaleString():'No messages'}</Typography></Box>)}</CardContent></Card>
+  <Card variant="outlined" sx={{borderRadius:3,display:'flex',flexDirection:'column'}}>{!active?<Box sx={{m:'auto',textAlign:'center',p:4}}><Typography sx={{fontWeight:900}}>Select a conversation</Typography><Typography sx={{color:'#64748b',fontSize:13}}>Internal communication stays inside the institute workspace.</Typography></Box>:<><CardContent sx={{pb:1}}><Typography sx={{fontWeight:900}}>{active.title||active.type}</Typography></CardContent><Divider/><Box sx={{flex:1,overflow:'auto',p:2}}>{messages.map(m=><Box key={m.id} sx={{mb:1.5}}><Typography sx={{fontSize:10,fontWeight:800,color:'#64748b'}}>{m.sender_email} · {new Date(m.created_at).toLocaleString()}</Typography><Typography sx={{fontSize:14,whiteSpace:'pre-wrap'}}>{m.body}</Typography></Box>)}</Box><CardContent><Stack direction="row" spacing={1}><TextField fullWidth size="small" placeholder="Write a message..." value={body} onChange={e=>setBody(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}}}/><Button variant="contained" onClick={send} disabled={!body.trim()}><SendRounded/></Button></Stack></CardContent></>}</Card>
+ </Box>
+}
