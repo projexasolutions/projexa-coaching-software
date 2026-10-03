@@ -11,10 +11,11 @@ import HomeworkPage from '../features/HomeworkPage';
 import ExamsPage from '../features/ExamsPage';
 import ResultsPage from '../features/ResultsPage';
 import IntelligencePage from '../features/IntelligencePage';
+import AdmissionsPage from '../features/AdmissionsPage';
 
 const nav:any[]=[
  ['/owner','Command Center',DashboardRounded],['/owner/students','Students',PeopleRounded],['/owner/academics','Academics',SchoolRounded],
- ['/owner/attendance','Attendance',EventAvailableRounded],['/owner/timetable','Timetable',CalendarMonthRounded],['/owner/faculty','Faculty',PeopleRounded],['/owner/homework','Homework',AssignmentRounded],['/owner/results','Results & Analytics',BarChartRounded],['/owner/intelligence','AI Intelligence',AutoAwesomeRounded],['/owner/exams','Exams & Results',QuizRounded],
+ ['/owner/attendance','Attendance',EventAvailableRounded],['/owner/timetable','Timetable',CalendarMonthRounded],['/owner/faculty','Faculty',PeopleRounded],['/owner/homework','Homework',AssignmentRounded],['/owner/results','Results & Analytics',BarChartRounded],['/owner/intelligence','AI Intelligence',AutoAwesomeRounded],['/owner/admissions','Admissions CRM',PeopleRounded],['/owner/exams','Exams & Results',QuizRounded],
  ['/owner/finance','Finance',AccountBalanceWalletRounded],['/owner/admissions','Admissions',CampaignRounded],['/owner/communication','Communication',NotificationsRounded],
  ['/owner/reports','Reports',BarChartRounded],['/owner/support','Support',SupportAgentRounded],['/owner/settings','Settings',SettingsRounded]
 ];
@@ -47,6 +48,7 @@ export default function App(){return <BrowserRouter><Routes>
  <Route path="/owner/exams" element={<Guard><Shell><Page title="Exams & Results" subtitle="Build exams, configure subjects and manage question sets."><ExamsPage/></Page></Shell></Guard>}/>
  <Route path="/owner/results" element={<Guard><Shell><Page title="Results & Analytics" subtitle="Generate, publish and analyze examination performance."><ResultsPage/></Page></Shell></Guard>}/>
  <Route path="/owner/intelligence" element={<Guard><Shell><Page title="AI Intelligence" subtitle="Prioritize institute risks and learning opportunities from operational data."><IntelligencePage/></Page></Shell></Guard>}/>
+ <Route path="/owner/admissions" element={<Guard><Shell><Page title="Admissions CRM" subtitle="Manage enquiries, counselling, demos, follow-ups and conversions."><AdmissionsPage/></Page></Shell></Guard>}/>
  {['admissions','communication','reports','support','settings'].map(k=><Route key={k} path={`/owner/${k}`} element={<Guard><Shell><Page title={k[0].toUpperCase()+k.slice(1)} subtitle="Operational module."><Placeholder title={k[0].toUpperCase()+k.slice(1)}/></Page></Shell></Guard>}/>)}
  <Route path="*" element={<Navigate to="/owner" replace/>}/>
  </Routes></BrowserRouter>}
