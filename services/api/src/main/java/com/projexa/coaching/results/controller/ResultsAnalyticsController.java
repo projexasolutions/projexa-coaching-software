@@ -65,7 +65,7 @@ public class ResultsAnalyticsController {
   @PreAuthorize("hasAuthority('results.manage') or hasRole('INSTITUTE_OWNER')")
   public Map<String,Object> generate(@PathVariable UUID examId){
     UUID t=TenantContextHolder.getRequired(); exam(t,examId);
-    double max=number("select coalesce(sum(max_marks),0) from exam_subjects where tenant_id=? and exam_id=?",t,examId);
+    Double maxValue=db.queryForObject("select coalesce(sum(max_marks),0) from exam_subjects where tenant_id=? and exam_id=?",Double.class,t,examId); double max=maxValue==null?0:maxValue;
     if(max<=0) throw new IllegalArgumentException("Configure exam subjects and maximum marks before generating results");
     List<Map<String,Object>> attempts=db.queryForList("select id attempt_id,student_id,score from exam_attempts where tenant_id=? and exam_id=? and status='SUBMITTED'",t,examId);
     attempts.sort((a,b)->Double.compare(number(b.get("score")),number(a.get("score"))));
