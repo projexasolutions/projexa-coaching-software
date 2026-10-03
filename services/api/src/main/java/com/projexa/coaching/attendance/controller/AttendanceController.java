@@ -104,9 +104,8 @@ public class AttendanceController {
   private Map<String,Object> session(UUID id,UUID t){return db.queryForMap("select id,batch_id,subject_id,teacher_id,session_date,start_time,end_time,status from attendance_sessions where id=? and tenant_id=?",id,t);}
   private boolean isRestricted(UUID student,UUID t){
     try{
-      Map<String,Object> s=db.queryForMap("select settings from tenant_settings where tenant_id=?",t);
-      String json=String.valueOf(s.get("settings"));
-      if(!json.contains(""feeAttendanceRestriction"")||!json.contains(""enabled":true")) return false;
+      Boolean enabled=db.queryForObject("select coalesce((settings->'feeAttendanceRestriction'->>'enabled')::boolean,false) from tenant_settings where tenant_id=?",Boolean.class,t);
+      if(!Boolean.TRUE.equals(enabled)) return false;
       Integer manual=db.queryForObject("select count(*) from student_attendance_restrictions where tenant_id=? and student_id=? and active=true",Integer.class,t,student);
       if(manual!=null&&manual>0)return true;
       Integer overdue=db.queryForObject("select count(*) from invoices where tenant_id=? and student_id=? and status in ('UNPAID','PARTIALLY_PAID') and due_date<current_date",Integer.class,t,student);
