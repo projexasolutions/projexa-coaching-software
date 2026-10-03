@@ -5,7 +5,7 @@ import {Alert,Box,Button,Card,CardContent,Chip,Dialog,DialogActions,DialogConten
 import {AddRounded,DeleteOutlineRounded,EditRounded,RefreshRounded,SearchRounded,PaymentsRounded,EventAvailableRounded,PeopleRounded,TrendingUpRounded} from '@mui/icons-material';
 
 const unwrap=(r:any)=>r?.data?.data??r?.data;
-const err=(e:any)=>e?.response?.data?.error?.message??e?.response?.data?.message??'Request failed';
+const err=(e:any)=>{const status=e?.response?.status; const body=e?.response?.data; const message=body?.error?.message??body?.message??body?.error??(typeof body==='string'?body:''); return [status?\`HTTP \${status}\`:'',message].filter(Boolean).join(': ')||e?.message||'Request failed';};
 
 function useList(endpoint:string){
  const [rows,setRows]=useState<any[]>([]),[loading,setLoading]=useState(true),[error,setError]=useState('');
