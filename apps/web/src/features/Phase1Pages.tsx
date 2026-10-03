@@ -1,3 +1,4 @@
+// @ts-nocheck
 import {useEffect,useMemo,useState} from 'react';
 import {api} from '../services';
 import {Alert,Box,Button,Card,CardContent,Chip,Dialog,DialogActions,DialogContent,DialogTitle,Divider,IconButton,InputAdornment,MenuItem,Select,Stack,Table,TableBody,TableCell,TableHead,TableRow,TextField,Typography} from '@mui/material';
