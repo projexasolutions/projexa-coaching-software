@@ -1,3 +1,25 @@
 package com.projexa.coaching.academics.service;
-import com.projexa.coaching.common.exceptions.ApiException; import com.projexa.coaching.common.tenant.TenantContextHolder; import com.projexa.coaching.academics.entity.AcademicClass; import com.projexa.coaching.academics.repository.AcademicClassRepository; import org.springframework.stereotype.Service; import java.util.*;
-@Service public class AcademicClassService { private final AcademicClassRepository repo; public AcademicClassService(AcademicClassRepository repo){this.repo=repo;} public List<AcademicClass> list(){return repo.findAllByTenantId(TenantContextHolder.getRequired());} public AcademicClass get(UUID id){return repo.findByIdAndTenantId(id,TenantContextHolder.getRequired()).orElseThrow(()->new ApiException("NOT_FOUND","Resource not found"));} public AcademicClass create(AcademicClass item){item.setTenantId(TenantContextHolder.getRequired()); return repo.save(item);} public AcademicClass update(UUID id,AcademicClass item){AcademicClass current=get(id); copy(item,current); return repo.save(current);} public void delete(UUID id){repo.delete(get(id));} private void copy(AcademicClass s,AcademicClass t){t.setName(s.getName());t.setDisplayOrder(s.getDisplayOrder());t.setActive(s.isActive());}}
+
+import com.projexa.coaching.common.exceptions.ApiException;
+import com.projexa.coaching.common.tenant.TenantContextHolder;
+import com.projexa.coaching.academics.entity.AcademicClass;
+import com.projexa.coaching.academics.repository.AcademicClassRepository;
+import org.springframework.stereotype.Service;
+import java.util.*;
+
+@Service
+public class AcademicClassService {
+    private final AcademicClassRepository repo;
+    public AcademicClassService(AcademicClassRepository repo){this.repo=repo;}
+    public List<AcademicClass> list(){return repo.findAllByTenantId(TenantContextHolder.getRequired());}
+    public AcademicClass get(UUID id){return repo.findByIdAndTenantId(id,TenantContextHolder.getRequired()).orElseThrow(()->new ApiException("NOT_FOUND","Class not found"));}
+    public AcademicClass create(AcademicClass item){validate(item);item.setTenantId(TenantContextHolder.getRequired());return repo.save(item);}
+    public AcademicClass update(UUID id,AcademicClass item){validate(item);AcademicClass current=get(id);copy(item,current);return repo.save(current);}
+    public void delete(UUID id){AcademicClass current=get(id);current.setActive(false);repo.save(current);}
+    private void validate(AcademicClass x){
+        if(x==null||x.getName()==null||x.getName().trim().isEmpty())throw new ApiException("VALIDATION_ERROR","Class name is required");
+        if(x.getDisplayOrder()<0)throw new ApiException("VALIDATION_ERROR","Display order cannot be negative");
+        x.setName(x.getName().trim());
+    }
+    private void copy(AcademicClass s,AcademicClass t){t.setName(s.getName());t.setDisplayOrder(s.getDisplayOrder());t.setActive(s.isActive());}
+}
