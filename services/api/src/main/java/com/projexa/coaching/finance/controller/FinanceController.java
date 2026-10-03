@@ -15,7 +15,7 @@ public class FinanceController {
   public FinanceController(JdbcTemplate db,ResourceAccess access){this.db=db;this.access=access;}
 
   @GetMapping("/invoices")
-  @PreAuthorize("hasAnyAuthority('finance.manage','dashboard.read') or hasAnyRole('STUDENT','PARENT')")
+  @PreAuthorize("hasAnyAuthority('finance.manage','dashboard.read') or hasAnyRole('INSTITUTE_OWNER','INSTITUTE_ADMIN','STUDENT','PARENT')")
   public List<Map<String,Object>> invoices(@RequestParam(required=false) UUID studentId,Authentication auth){
     UUID t=TenantContextHolder.getRequired();
     if(studentId==null&&!access.isStaff(auth))throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST,"studentId is required");
@@ -25,7 +25,7 @@ public class FinanceController {
   }
 
   @PostMapping("/invoices")
-  @PreAuthorize("hasAuthority('finance.manage')")
+  @PreAuthorize("hasAuthority('finance.manage') or hasAnyRole('INSTITUTE_OWNER','INSTITUTE_ADMIN')")
   public Map<String,Object> createInvoice(@RequestBody InvoiceRequest req){
     UUID t=TenantContextHolder.getRequired();
     if(req.amount()<=0)throw new IllegalArgumentException("Amount must be greater than zero");
@@ -36,7 +36,7 @@ public class FinanceController {
   }
 
   @PostMapping("/payments")
-  @PreAuthorize("hasAuthority('finance.manage') or hasAnyRole('STUDENT','PARENT')")
+  @PreAuthorize("hasAuthority('finance.manage') or hasAnyRole('INSTITUTE_OWNER','INSTITUTE_ADMIN','STUDENT','PARENT')")
   @org.springframework.transaction.annotation.Transactional
   public Map<String,Object> pay(@RequestBody PaymentRequest req,Authentication auth){
     UUID t=TenantContextHolder.getRequired();
