@@ -4,7 +4,7 @@ import {AddRounded,DeleteOutlineRounded,EditRounded,QuizRounded,LibraryAddRounde
 import {api} from '../services';
 
 type Exam={id:string;academic_year_id:string;name:string;exam_type:string;starts_at?:string;ends_at?:string;status:string;academic_year:string;subject_count:number;question_count:number;attempt_count:number};
-type R={id:string;name:string;code?:string};
+type R={id:string;name:string;code?:string;is_current?:boolean};
 function unwrap(r:any){return r?.data?.data??r?.data??[]}
 function err(e:any,f:string){return e?.response?.data?.message||e?.response?.data?.error?.message||f}
 
