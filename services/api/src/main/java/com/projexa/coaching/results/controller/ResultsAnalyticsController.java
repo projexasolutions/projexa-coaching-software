@@ -67,7 +67,7 @@ public class ResultsAnalyticsController {
     UUID t=TenantContextHolder.getRequired(); exam(t,examId);
     double max=number("select coalesce(sum(max_marks),0) from exam_subjects where tenant_id=? and exam_id=?",t,examId);
     if(max<=0) throw new IllegalArgumentException("Configure exam subjects and maximum marks before generating results");
-    List<Map<String,Object>> attempts=db.queryForList("select student_id,score from exam_attempts where tenant_id=? and exam_id=? and status='SUBMITTED'",t,examId);
+    List<Map<String,Object>> attempts=db.queryForList("select id attempt_id,student_id,score from exam_attempts where tenant_id=? and exam_id=? and status='SUBMITTED'",t,examId);
     attempts.sort((a,b)->Double.compare(number(b.get("score")),number(a.get("score"))));
     double previous=Double.NaN; int rank=0;
     for(int i=0;i<attempts.size();i++){
@@ -75,6 +75,7 @@ public class ResultsAnalyticsController {
       if(Double.isNaN(previous)||Double.compare(score,previous)!=0) rank=i+1;
       previous=score;
       UUID student=(UUID)attempts.get(i).get("student_id");
+      UUID attemptId=(UUID)attempts.get(i).get("attempt_id");
       double pct=Math.round((score*10000.0/max))/100.0;
       UUID resultId=UUID.randomUUID();
       db.update("""
@@ -84,6 +85,16 @@ public class ResultsAnalyticsController {
         """,resultId,t,examId,student,max,score,pct,rank);
       UUID rid=db.queryForObject("select id from results where tenant_id=? and exam_id=? and student_id=?",UUID.class,t,examId,student);
       db.update("delete from result_subjects where result_id=?",rid);
+      List<Map<String,Object>> subjectMarks=db.queryForList("""
+        select q.subject_id,coalesce(sum(aa.marks_awarded),0) obtained
+        from attempt_answers aa join questions q on q.id=aa.question_id and q.tenant_id=?
+        where aa.attempt_id=? group by q.subject_id
+        """,t,attemptId);
+      for(Map<String,Object> sm:subjectMarks){
+        UUID subjectId=(UUID)sm.get("subject_id");
+        Double subjectMax=db.queryForObject("select max_marks from exam_subjects where tenant_id=? and exam_id=? and subject_id=?",Double.class,t,examId,subjectId);
+        db.update("insert into result_subjects(id,result_id,subject_id,max_marks,obtained_marks) values(?,?,?,?,?)",UUID.randomUUID(),rid,subjectId,subjectMax,number(sm.get("obtained")));
+      }
     }
     return Map.of("examId",examId,"generated",attempts.size(),"maxMarks",max);
   }
