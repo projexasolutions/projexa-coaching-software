@@ -5,6 +5,7 @@ import {DashboardRounded,PeopleRounded,SchoolRounded,EventAvailableRounded,Calen
 import LoginPage from '../features/auth/LoginPage';
 import {useAuth} from '../features/auth/authStore';
 import {LiveDashboard,LiveStudentsPage,LiveStudentProfile,LiveAcademicsPage,LiveAttendancePage,LiveFinancePage} from '../features/Phase1Pages';
+import TimetablePage from '../features/TimetablePage';
 
 const nav:any[]=[
  ['/owner','Command Center',DashboardRounded],['/owner/students','Students',PeopleRounded],['/owner/academics','Academics',SchoolRounded],
@@ -35,6 +36,7 @@ export default function App(){return <BrowserRouter><Routes>
  <Route path="/owner/academics" element={<Guard><Shell><Page title="Academics" subtitle="Configure academic years, classes, streams, subjects and batches."><LiveAcademicsPage/></Page></Shell></Guard>}/>
  <Route path="/owner/attendance" element={<Guard><Shell><Page title="Attendance" subtitle="Create sessions and mark live attendance."><LiveAttendancePage/></Page></Shell></Guard>}/>
  <Route path="/owner/finance" element={<Guard><Shell><Page title="Finance" subtitle="Manage invoices, collections and outstanding fees."><LiveFinancePage/></Page></Shell></Guard>}/>
- {['timetable','exams','admissions','communication','reports','support','settings'].map(k=><Route key={k} path={`/owner/${k}`} element={<Guard><Shell><Page title={k[0].toUpperCase()+k.slice(1)} subtitle="Operational module."><Placeholder title={k[0].toUpperCase()+k.slice(1)}/></Page></Shell></Guard>}/>)}
+ <Route path="/owner/timetable" element={<Guard><Shell><Page title="Timetable Management" subtitle="Schedule batches, teachers and classrooms with conflict protection."><TimetablePage/></Page></Shell></Guard>}/>
+ {['exams','admissions','communication','reports','support','settings'].map(k=><Route key={k} path={`/owner/${k}`} element={<Guard><Shell><Page title={k[0].toUpperCase()+k.slice(1)} subtitle="Operational module."><Placeholder title={k[0].toUpperCase()+k.slice(1)}/></Page></Shell></Guard>}/>)}
  <Route path="*" element={<Navigate to="/owner" replace/>}/>
  </Routes></BrowserRouter>}
