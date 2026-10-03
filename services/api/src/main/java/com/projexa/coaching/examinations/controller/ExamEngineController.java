@@ -19,7 +19,14 @@ public class ExamEngineController {
   @org.springframework.transaction.annotation.Transactional
   @PreAuthorize("hasAuthority('exams.manage') or hasRole('STUDENT')")
   public ResponseEntity<?> start(@PathVariable UUID examId,@RequestBody StartAttempt req, Authentication auth){
-    UUID tenant=TenantContextHolder.getRequired(); access.requireOwnStudent(tenant, req.studentId(), auth);
+    UUID tenant=TenantContextHolder.getRequired();
+    access.requireOwnStudent(tenant, req.studentId(), auth);
+    Map<String,Object> exam=exam(examId,tenant);
+    if(!Set.of("SCHEDULED","LIVE").contains(String.valueOf(exam.get("status")))) throw new IllegalArgumentException("Exam is not open for attempts");
+    if(count("select count(*) from enrollments where tenant_id=? and student_id=? and status='ACTIVE'",tenant,req.studentId())==0) throw new IllegalArgumentException("Student is not actively enrolled");
+    LocalDateTime now=LocalDateTime.now();
+    if(exam.get("starts_at")!=null && now.isBefore(((java.sql.Timestamp)exam.get("starts_at")).toLocalDateTime())) throw new IllegalArgumentException("Exam has not started");
+    if(exam.get("ends_at")!=null && now.isAfter(((java.sql.Timestamp)exam.get("ends_at")).toLocalDateTime())) throw new IllegalArgumentException("Exam has ended");
     UUID existing=findAttempt(examId,req.studentId(),tenant);
     if(existing!=null) return ResponseEntity.ok(Map.of("attemptId",existing,"status","IN_PROGRESS"));
     UUID id=UUID.randomUUID();
@@ -36,8 +43,9 @@ public class ExamEngineController {
     if(!"IN_PROGRESS".equals(attempt.get("status"))) return ResponseEntity.badRequest().body(Map.of("code","ATTEMPT_CLOSED","message","Attempt is already submitted"));
     UUID studentId=(UUID)attempt.get("student_id"); access.requireOwnStudent(tenant, studentId, auth); UUID examId=(UUID)attempt.get("exam_id"); double total=0;
     for(var e:req.answers().entrySet()){
-      UUID q=UUID.fromString(e.getKey()); String answer=String.valueOf(e.getValue());
-      Map<String,Object> qrow=db.queryForMap("select q.marks,q.question_type,q.subject_id,es.negative_marking from questions q join exam_subjects es on es.exam_id=? and es.subject_id=q.subject_id where q.id=? and q.tenant_id=?",examId,q,tenant);
+      UUID q=UUID.fromString(e.getKey()); String answer=e.getValue()==null?"":String.valueOf(e.getValue()).trim();
+      Map<String,Object> qrow;
+      try{qrow=db.queryForMap("select q.marks,q.question_type,q.subject_id,es.negative_marking from exam_questions eq join questions q on q.id=eq.question_id and q.tenant_id=eq.tenant_id join exam_subjects es on es.exam_id=eq.exam_id and es.subject_id=eq.subject_id where eq.exam_id=? and eq.question_id=? and eq.tenant_id=?",examId,q,tenant);}catch(Exception ex){throw new IllegalArgumentException("Question is not part of this exam");}
       List<Map<String,Object>> options=db.queryForList("select option_text,is_correct from question_options where question_id=? order by display_order",q);
       boolean correct=grade(String.valueOf(qrow.get("question_type")),answer,options);
       BigDecimal marks=(BigDecimal)qrow.get("marks"); BigDecimal configuredNegative=(BigDecimal)qrow.get("negative_marking"); double awarded=correct?marks.doubleValue():(configuredNegative != null && configuredNegative.signum()>0 ? -configuredNegative.doubleValue() : 0);
@@ -55,6 +63,8 @@ public class ExamEngineController {
     Map<String,Object> row=db.queryForMap("select count(*) attempts, coalesce(avg(score),0) average_score, coalesce(max(score),0) highest_score from exam_attempts where tenant_id=? and exam_id=? and status='SUBMITTED'",t,examId);
     return row;
   }
+  private Map<String,Object> exam(UUID id,UUID tenant){try{return db.queryForMap("select status,starts_at,ends_at from exams where id=? and tenant_id=?",id,tenant);}catch(Exception e){throw new IllegalArgumentException("Exam not found");}}
+  private int count(String sql,Object... args){Integer n=db.queryForObject(sql,Integer.class,args);return n==null?0:n;}
   private UUID findAttempt(UUID exam,UUID student,UUID tenant){List<UUID> x=db.query("select id from exam_attempts where exam_id=? and student_id=? and tenant_id=? and status='IN_PROGRESS'",(rs,n)->(UUID)rs.getObject(1),exam,student,tenant);return x.isEmpty()?null:x.get(0);}
   private boolean grade(String type,String answer,List<Map<String,Object>> options){
     String a=answer.trim();
