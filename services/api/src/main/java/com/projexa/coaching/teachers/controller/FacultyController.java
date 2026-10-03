@@ -90,8 +90,8 @@ public class FacultyController {
     requireTeacher(t,id);
     List<UUID> batches=r==null||r.batchIds()==null?List.of():r.batchIds();
     List<UUID> subjects=r==null||r.subjectIds()==null?List.of():r.subjectIds();
-    validateIds(t,batches,"batches","select count(*) from batches where tenant_id=? and id=any(?)");
-    validateIds(t,subjects,"subjects","select count(*) from subjects where tenant_id=? and id=any(?)");
+    validateIds(t,batches,"batches");
+    validateIds(t,subjects,"subjects");
     db.update("delete from teacher_batch_assignments where teacher_id=?",id);
     db.update("delete from teacher_subjects where teacher_id=?",id);
     for(UUID batch:batches) db.update("insert into teacher_batch_assignments(teacher_id,batch_id) values(?,?)",id,batch);
@@ -143,13 +143,12 @@ public class FacultyController {
     );
   }
 
-  private void validateIds(UUID t,List<UUID> ids,String label,String sql){
+  private void validateIds(UUID t,List<UUID> ids,String label){
     Set<UUID> unique=new LinkedHashSet<>(ids);
     if(unique.size()!=ids.size()) throw new IllegalArgumentException("Duplicate "+label+" are not allowed");
-    if(unique.isEmpty()) return;
-    UUID[] arr=unique.toArray(UUID[]::new);
-    Integer found=db.queryForObject(sql,Integer.class,t,arr);
-    if(found==null || found!=unique.size()) throw new IllegalArgumentException("One or more "+label+" are invalid for this institute");
+    for(UUID id:unique){
+      if(id==null || count("select count(*) from "+label+" where tenant_id=? and id=?",t,id)==0) throw new IllegalArgumentException("One or more "+label+" are invalid for this institute");
+    }
   }
 
   private void validateTeacher(TeacherRequest r){
