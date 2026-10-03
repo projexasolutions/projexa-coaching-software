@@ -41,7 +41,11 @@ public class AdmissionsController {
   @GetMapping("/leads/{id}")
   @PreAuthorize("hasAuthority('admissions.manage')")
   public Map<String,Object> get(@PathVariable UUID id){
-    UUID t=TenantContextHolder.getRequired(); requireLead(t,id);
+    UUID t=TenantContextHolder.getRequired(); return detail(t,id);
+  }
+
+  private Map<String,Object> detail(UUID t,UUID id){
+    requireLead(t,id);
     return Map.of("lead",db.queryForMap("select * from leads where id=? and tenant_id=?",id,t),
       "activities",db.queryForList("select * from lead_activities where tenant_id=? and lead_id=? order by created_at desc",t,id),
       "followUps",db.queryForList("select * from follow_ups where tenant_id=? and lead_id=? order by due_at asc",t,id));
@@ -54,7 +58,7 @@ public class AdmissionsController {
     validateCounsellor(t,r.counsellorUserId());
     db.update("insert into leads(id,tenant_id,name,phone,email,source,stage,counsellor_user_id,lost_reason) values(?,?,?,?,?,?,?,?,?)",
       id,t,r.name().trim(),clean(r.phone()),clean(r.email()),clean(r.source()),stage(r.stage()),r.counsellorUserId(),clean(r.lostReason()));
-    addActivity(t,id,r.counsellorUserId(),"CREATED","Lead created"); return get(t,id);
+    addActivity(t,id,r.counsellorUserId(),"CREATED","Lead created"); return detail(t,id);
   }
 
   @PutMapping("/leads/{id}")
@@ -63,7 +67,7 @@ public class AdmissionsController {
     UUID t=TenantContextHolder.getRequired(); requireLead(t,id); validate(r); validateCounsellor(t,r.counsellorUserId());
     db.update("update leads set name=?,phone=?,email=?,source=?,stage=?,counsellor_user_id=?,lost_reason=?,updated_at=now() where id=? and tenant_id=?",
       r.name().trim(),clean(r.phone()),clean(r.email()),clean(r.source()),stage(r.stage()),r.counsellorUserId(),clean(r.lostReason()),id,t);
-    addActivity(t,id,r.counsellorUserId(),"UPDATED","Lead details updated"); return get(t,id);
+    addActivity(t,id,r.counsellorUserId(),"UPDATED","Lead details updated"); return detail(t,id);
   }
 
   @PostMapping("/leads/{id}/stage")
@@ -73,7 +77,7 @@ public class AdmissionsController {
     String reason=clean(req.get("lostReason"));
     if("LOST".equals(next)&&reason==null) throw new IllegalArgumentException("Lost reason is required");
     db.update("update leads set stage=?,lost_reason=?,updated_at=now() where id=? and tenant_id=?",next,reason,id,t);
-    addActivity(t,id,null,"STAGE_CHANGED","Moved to "+next); return get(t,id);
+    addActivity(t,id,null,"STAGE_CHANGED","Moved to "+next); return detail(t,id);
   }
 
   @PostMapping("/leads/{id}/activities")
