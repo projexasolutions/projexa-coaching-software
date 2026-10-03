@@ -57,7 +57,9 @@ export function LiveAcademicsPage(){
 }
 function AcademicResource({title,endpoint,fields,onChanged}:{title:string;endpoint:string;fields:string[];onChanged:()=>void}){
  const {rows,loading,error,load}=useList(endpoint);const [open,setOpen]=useState(false);const [edit,setEdit]=useState<any>(null);
- return <Card elevation={0} sx={{border:'1px solid #e5e7eb'}}><CardContent><Stack direction="row" justifyContent="space-between" mb={2}><Box><Typography fontWeight={900}>{title}</Typography><Typography fontSize={12} color="text.secondary">{rows.length} records in this tenant</Typography></Box><Button variant="contained" startIcon={<AddRounded/>} onClick={()=>{setEdit(null);setOpen(true)}}>Add</Button></Stack><Busy loading={loading} error={error}/>{!loading&&!error&&<Table size="small"><TableHead><TableRow>{fields.map(f=><TableCell key={f} sx={{fontWeight:900,fontSize:11}}>{f}</TableCell>)}<TableCell/></TableRow></TableHead><TableBody>{rows.map(r=><TableRow key={r.id}>{fields.map(f=><TableCell key={f}>{String(r[f]??'—')}</TableCell>)}<TableCell align="right"><IconButton onClick={()=>{setEdit(r);setOpen(true)}}><EditRounded fontSize="small"/></IconButton><IconButton color="error" onClick={async()=>{if(confirm('Delete this record?')){await api.delete(`${endpoint}/${r.id}`);load();onChanged()}}}><DeleteOutlineRounded fontSize="small"/></IconButton></TableCell></TableRow>)}</TableBody></Table>}<AcademicDialog open={open} initial={edit} endpoint={endpoint} fields={fields} onClose={()=>setOpen(false)} onSaved={()=>{setOpen(false);load();onChanged()}}/></CardContent></Card>
+ return <Card elevation={0} sx={{border:'1px solid #e5e7eb'}}><CardContent><Stack direction="row" justifyContent="space-between" mb={2}><Box><Typography fontWeight={900}>{title}</Typography><Typography fontSize={12} color="text.secondary">{rows.length} records in this tenant</Typography></Box><Button variant="contained" startIcon={<AddRounded/>} onClick={()=>{setEdit(null);setOpen(true)}}>Add</Button></Stack><Busy loading={loading} error={error}/>{!loading&&!error&&<Table size="small"><TableHead><TableRow>{fields.map(f=><TableCell key={f} sx={{fontWeight:900,fontSize:11}}>{f}</TableCell>)}<TableCell/></TableRow></TableHead><TableBody>{rows.map(r=><TableRow key={r.id}>{fields.map(f=><TableCell key={f}>{String(r[f]??'—')}</TableCell>)}<TableCell align="right"><IconButton onClick={()=>{setEdit(r);setOpen(true)}}><EditRounded fontSize="small"/></IconButton><IconButton color="error" onClick={async()=>{if(confirm('Delete this record?')){await api.delete(`${endpoint}/${r.id}`);load();onChanged()}}}><DeleteOutlineRounded fontSize="small"/></IconButton></TableCell></TableRow>)}</TableBody></Table>}{endpoint==='/batches'
+        ? <BatchDialog open={open} initial={edit} onClose={()=>setOpen(false)} onSaved={()=>{setOpen(false);load();onChanged()}}/>
+        : <AcademicDialog open={open} initial={edit} endpoint={endpoint} fields={fields} onClose={()=>setOpen(false)} onSaved={()=>{setOpen(false);load();onChanged()}}/>}</CardContent></Card>
 }
 function AcademicDialog({open,initial,endpoint,fields,onClose,onSaved}:{open:boolean;initial:any;endpoint:string;fields:string[];onClose:()=>void;onSaved:()=>void}){
  const [form,setForm]=useState<any>({});const [saving,setSaving]=useState(false);const [error,setError]=useState('');
@@ -65,6 +67,48 @@ function AcademicDialog({open,initial,endpoint,fields,onClose,onSaved}:{open:boo
  const set=(k:string)=>(e:any)=>setForm((x:any)=>({...x,[k]:e.target.type==='checkbox'?e.target.checked:e.target.value}));
  const save=async()=>{setSaving(true);try{if(initial)await api.put(`${endpoint}/${initial.id}`,form);else await api.post(endpoint,form);onSaved()}catch(e){setError(err(e))}finally{setSaving(false)}};
  return <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm"><DialogTitle>{initial?'Edit':'Add'} record</DialogTitle><DialogContent><Stack spacing={2} mt={1}>{error&&<Alert severity="error">{error}</Alert>}{fields.map(f=>f==='active'||f==='isCurrent'?<Select key={f} value={String(form[f])} onChange={e=>setForm((x:any)=>({...x,[f]:e.target.value==='true'}))}><MenuItem value="true">Active / Current</MenuItem><MenuItem value="false">Inactive / Not current</MenuItem></Select>:<TextField key={f} label={f} value={form[f]??''} onChange={set(f)} type={f.toLowerCase().includes('date')?'date':'text'} InputLabelProps={f.toLowerCase().includes('date')?{shrink:true}:undefined}/>)}</Stack></DialogContent><DialogActions><Button onClick={onClose}>Cancel</Button><Button variant="contained" disabled={saving} onClick={save}>{saving?'Saving…':'Save'}</Button></DialogActions></Dialog>
+}
+
+function BatchDialog({open,initial,onClose,onSaved}:{open:boolean;initial:any;onClose:()=>void;onSaved:()=>void}){
+ const {rows:years}=useList('/academic-years');
+ const {rows:classes}=useList('/classes');
+ const {rows:streams}=useList('/streams');
+ const [form,setForm]=useState<any>({academicYearId:'',classId:'',streamId:'',name:'',code:'',capacity:'',status:'ACTIVE'});
+ const [saving,setSaving]=useState(false),[error,setError]=useState('');
+ useEffect(()=>{
+   const currentYear=years.find((x:any)=>x.isCurrent)?.id||years[0]?.id||'';
+   setForm({
+     academicYearId:initial?.academicYearId||initial?.academic_year_id||currentYear,
+     classId:initial?.classId||initial?.class_id||'',
+     streamId:initial?.streamId||initial?.stream_id||'',
+     name:initial?.name||'', code:initial?.code||'', capacity:initial?.capacity??'', status:initial?.status||'ACTIVE'
+   });
+   setError('');
+ },[open,initial,years]);
+ const set=(key:string)=>(e:any)=>setForm((x:any)=>({...x,[key]:e.target.value}));
+ const save=async()=>{
+   if(!form.academicYearId||!form.classId||!form.name.trim()){setError('Academic year, class and batch name are required.');return;}
+   setSaving(true);setError('');
+   try{
+     const payload={...form,capacity:form.capacity===''?null:Number(form.capacity)};
+     if(initial) await api.put(`/batches/${initial.id}`,payload); else await api.post('/batches',payload);
+     onSaved();
+   }catch(e){setError(err(e))}finally{setSaving(false)}
+ };
+ return <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
+   <DialogTitle>{initial?'Edit':'Add'} batch</DialogTitle>
+   <DialogContent><Stack spacing={2} mt={1}>
+     {error&&<Alert severity="error">{error}</Alert>}
+     <Select value={form.academicYearId} displayEmpty onChange={set('academicYearId')}><MenuItem value="" disabled>Select academic year</MenuItem>{years.map((x:any)=><MenuItem key={x.id} value={x.id}>{x.name}{x.isCurrent?' • Current':''}</MenuItem>)}</Select>
+     <Select value={form.classId} displayEmpty onChange={set('classId')}><MenuItem value="" disabled>Select class</MenuItem>{classes.map((x:any)=><MenuItem key={x.id} value={x.id}>{x.name}</MenuItem>)}</Select>
+     <Select value={form.streamId} displayEmpty onChange={set('streamId')}><MenuItem value="">No stream</MenuItem>{streams.map((x:any)=><MenuItem key={x.id} value={x.id}>{x.name}</MenuItem>)}</Select>
+     <TextField label="Batch name" value={form.name} onChange={set('name')} required/>
+     <TextField label="Code" value={form.code} onChange={set('code')}/>
+     <TextField label="Capacity" type="number" value={form.capacity} onChange={set('capacity')}/>
+     <Select value={form.status} onChange={set('status')}><MenuItem value="ACTIVE">ACTIVE</MenuItem><MenuItem value="INACTIVE">INACTIVE</MenuItem></Select>
+   </Stack></DialogContent>
+   <DialogActions><Button onClick={onClose}>Cancel</Button><Button variant="contained" disabled={saving} onClick={save}>{saving?'Saving…':'Save batch'}</Button></DialogActions>
+ </Dialog>;
 }
 
 export function LiveAttendancePage(){
