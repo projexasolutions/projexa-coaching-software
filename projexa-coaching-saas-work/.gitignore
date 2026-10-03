@@ -1,0 +1,27 @@
+# Node
+node_modules/
+dist/
+.vite/
+
+# Java
+**/target/
+*.class
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Environment
+.env
+.env.*
+!.env.example
+!.env.production.example
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test artifacts
+playwright-report/
+test-results/

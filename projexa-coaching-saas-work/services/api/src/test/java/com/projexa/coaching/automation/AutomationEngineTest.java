@@ -1,0 +1,3 @@
+package com.projexa.coaching.automation;
+import com.projexa.coaching.automation.domain.AutomationEnums; import com.projexa.coaching.automation.service.AutomationEngine; import org.junit.jupiter.api.Test; import static org.junit.jupiter.api.Assertions.*;
+class AutomationEngineTest { @Test void evaluatesBasicOperators(){AutomationEngine e=new AutomationEngine();assertTrue(e.evaluate(AutomationEnums.Operator.EQUALS,"PAID","PAID"));assertTrue(e.evaluate(AutomationEnums.Operator.CONTAINS,"attendance-low","low"));assertTrue(e.evaluate(AutomationEnums.Operator.IS_EMPTY,null,"x"));assertFalse(e.evaluate(AutomationEnums.Operator.NOT_EQUALS,"A","A"));} }

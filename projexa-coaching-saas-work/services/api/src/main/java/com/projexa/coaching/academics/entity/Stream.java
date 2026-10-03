@@ -1,0 +1,3 @@
+package com.projexa.coaching.academics.entity;
+import jakarta.persistence.*; import java.util.UUID;
+@Entity @Table(name="streams") public class Stream { @Id @GeneratedValue(strategy=GenerationType.UUID) private UUID id; @Column(nullable=false) private UUID tenantId; @Column(nullable=false) private String name; private String code; private boolean active=true; public UUID getId(){return id;} public UUID getTenantId(){return tenantId;} public void setTenantId(UUID v){tenantId=v;} public String getName(){return name;} public void setName(String v){name=v;} public String getCode(){return code;} public void setCode(String v){code=v;} public boolean isActive(){return active;} public void setActive(boolean v){active=v;} }

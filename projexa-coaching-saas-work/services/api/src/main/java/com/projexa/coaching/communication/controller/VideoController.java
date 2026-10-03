@@ -1,0 +1,7 @@
+package com.projexa.coaching.communication.controller;
+import com.projexa.coaching.common.tenant.TenantContextHolder; import org.springframework.jdbc.core.JdbcTemplate; import org.springframework.security.access.prepost.PreAuthorize; import org.springframework.security.core.Authentication; import org.springframework.web.bind.annotation.*; import java.time.LocalDateTime; import java.util.*;
+@RestController @RequestMapping("/api/v1/video") public class VideoController {private final JdbcTemplate db;public VideoController(JdbcTemplate db){this.db=db;}
+@PostMapping("/sessions") @PreAuthorize("hasAuthority('communication.send')") public Map<String,Object> create(@RequestBody Session req, Authentication auth){UUID t=TenantContextHolder.getRequired(),id=UUID.randomUUID(); UUID host=UUID.fromString(auth.getName()); String room="projexa-"+UUID.randomUUID();db.update("insert into video_sessions(id,tenant_id,host_user_id,title,provider,external_room_id,starts_at,status) values(?,?,?,?,?,?,?,?)",id,t,host,req.title(),req.provider()==null?"ABSTRACT":req.provider(),room,req.startsAt(),"SCHEDULED");return Map.of("id",id,"roomId",room);}
+@GetMapping("/sessions") public List<Map<String,Object>> list(){return db.queryForList("select * from video_sessions where tenant_id=? order by starts_at desc",TenantContextHolder.getRequired());}
+public record Session(String title,String provider,LocalDateTime startsAt){}
+}

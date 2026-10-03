@@ -1,0 +1,5 @@
+import {create} from 'zustand'; import {persist} from 'zustand/middleware';
+import {api} from '../../services';
+export type Session={accessToken:string;refreshToken:string;userId:string;tenantId:string;tenantName:string;firstName:string;lastName?:string;roles:string[];permissions:string[]};
+type AuthState={session:Session|null;loading:boolean;login:(tenantSlug:string,email:string,password:string)=>Promise<void>;logout:()=>Promise<void>;};
+export const useAuth=create<AuthState>()(persist((set)=>({session:null,loading:false,login:async(tenantSlug,email,password)=>{set({loading:true});try{const r=await api.post('/auth/login',{tenantSlug,email,password});const s=r.data.data as Session;localStorage.setItem('projexa_access_token',s.accessToken);localStorage.setItem('projexa_refresh_token',s.refreshToken);set({session:s});}finally{set({loading:false});}},logout:async()=>{const token=localStorage.getItem('projexa_refresh_token');try{if(token) await api.post('/auth/logout',{refreshToken:token});}finally{localStorage.removeItem('projexa_access_token');localStorage.removeItem('projexa_refresh_token');set({session:null});}}}),{name:'projexa-auth'}));

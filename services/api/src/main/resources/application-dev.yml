@@ -1,0 +1,7 @@
+spring:
+  config:
+    activate:
+      on-profile: dev
+app:
+  jwt:
+    secret: dev-only-secret-change-me-please-please-please-32

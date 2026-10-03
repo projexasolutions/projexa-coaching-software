@@ -1,0 +1,2 @@
+package com.projexa.coaching.common.responses;
+public record ApiResponse<T>(T data, Meta meta, ErrorBody error) { public record Meta(String requestId){} public record ErrorBody(String code,String message){} public static <T> ApiResponse<T> ok(T data){return new ApiResponse<>(data,new Meta(null),null);} public static <T> ApiResponse<T> of(T data,String requestId){return new ApiResponse<>(data,new Meta(requestId),null);} public static <T> ApiResponse<T> error(String code,String message){return new ApiResponse<>(null,new Meta(null),new ErrorBody(code,message));} }

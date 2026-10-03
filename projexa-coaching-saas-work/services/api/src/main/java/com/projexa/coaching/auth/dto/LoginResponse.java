@@ -1,0 +1,1 @@
+package com.projexa.coaching.auth.dto; import java.util.*; public record LoginResponse(String accessToken,String refreshToken,long expiresIn,UUID userId,UUID tenantId,String tenantName,String firstName,String lastName,Set<String> roles,Set<String> permissions){}

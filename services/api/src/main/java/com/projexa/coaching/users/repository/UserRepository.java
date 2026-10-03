@@ -1,0 +1,1 @@
+package com.projexa.coaching.users.repository; import com.projexa.coaching.users.entity.User; import org.springframework.data.jpa.repository.JpaRepository; import java.util.*; public interface UserRepository extends JpaRepository<User,UUID>{Optional<User> findByTenantIdAndEmail(UUID tenantId,String email);}

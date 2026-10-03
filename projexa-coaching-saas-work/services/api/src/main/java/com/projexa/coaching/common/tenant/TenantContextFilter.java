@@ -1,0 +1,2 @@
+package com.projexa.coaching.common.tenant; import jakarta.servlet.*; import jakarta.servlet.http.*; import org.springframework.stereotype.Component; import java.io.IOException; import java.util.UUID;
+@Component public class TenantContextFilter extends jakarta.servlet.http.HttpFilter { protected void doFilter(HttpServletRequest req,HttpServletResponse res,FilterChain chain)throws IOException,ServletException{if(req.getAttribute("org.springframework.security.core.Authentication")!=null){} chain.doFilter(req,res);} }

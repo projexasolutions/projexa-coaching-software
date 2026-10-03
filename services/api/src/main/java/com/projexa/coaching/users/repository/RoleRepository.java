@@ -1,0 +1,1 @@
+package com.projexa.coaching.users.repository; import com.projexa.coaching.users.entity.Role; import org.springframework.data.jpa.repository.JpaRepository; import java.util.*; public interface RoleRepository extends JpaRepository<Role,UUID>{Optional<Role> findByTenantIdAndCode(UUID tenantId,String code);}

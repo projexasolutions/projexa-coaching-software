@@ -1,0 +1,3 @@
+package com.projexa.coaching.academics.repository.AcademicClassRepository;
+import com.projexa.coaching.academics.repository.entity.AcademicClass; import org.springframework.data.jpa.repository.JpaRepository; import java.util.*;
+public interface AcademicClassRepository extends JpaRepository<AcademicClass,UUID> { List<AcademicClass> findAllByTenantId(UUID tenantId); Optional<AcademicClass> findByIdAndTenantId(UUID id,UUID tenantId); }

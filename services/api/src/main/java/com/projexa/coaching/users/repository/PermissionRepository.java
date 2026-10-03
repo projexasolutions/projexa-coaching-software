@@ -1,0 +1,1 @@
+package com.projexa.coaching.users.repository; import com.projexa.coaching.users.entity.Permission; import org.springframework.data.jpa.repository.JpaRepository; import java.util.*; public interface PermissionRepository extends JpaRepository<Permission,UUID>{Optional<Permission> findByCode(String code);}

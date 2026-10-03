@@ -1,0 +1,2 @@
+package com.projexa.coaching.finance.service;
+public interface PaymentGateway { String createPayment(String invoiceId,long amountInMinorUnits,String currency); boolean verifyWebhook(String payload,String signature); }
