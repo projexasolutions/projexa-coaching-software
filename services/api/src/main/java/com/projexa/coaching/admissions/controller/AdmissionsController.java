@@ -98,6 +98,26 @@ public class AdmissionsController {
     return Map.of("id",fid,"created",true);
   }
 
+  @PostMapping("/leads/{id}/convert")
+  @PreAuthorize("hasAuthority('admissions.manage')")
+  @org.springframework.transaction.annotation.Transactional
+  public Map<String,Object> convert(@PathVariable UUID id,@RequestBody ConvertRequest r){
+    UUID t=TenantContextHolder.getRequired(); Map<String,Object> lead=detail(t,id).get("lead") instanceof Map<?,?> m?(Map<String,Object>)m:detail(t,id).get("lead")==null?null:(Map<String,Object>)detail(t,id).get("lead");
+    if(r==null||r.batchId()==null||r.admissionNumber()==null||r.admissionNumber().isBlank()) throw new IllegalArgumentException("Admission number and batch are required");
+    if(count("select count(*) from leads where id=? and tenant_id=? and stage='ADMITTED'",id,t)>0) throw new IllegalArgumentException("Lead is already converted");
+    Map<String,Object> batch=db.queryForMap("select id,academic_year_id,class_id,stream_id from batches where id=? and tenant_id=? and status='ACTIVE'",r.batchId(),t);
+    String admission=r.admissionNumber().trim();
+    if(count("select count(*) from students where tenant_id=? and admission_number=?",t,admission)>0) throw new IllegalArgumentException("Admission number already exists");
+    UUID student=UUID.randomUUID();
+    db.update("insert into students(id,tenant_id,admission_number,first_name,last_name,email,phone,status) values(?,?,?,?,?,?,?,'ACTIVE')",
+      student,t,admission,String.valueOf(lead.get("name")),null,lead.get("email"),lead.get("phone"));
+    db.update("insert into enrollments(id,tenant_id,student_id,academic_year_id,class_id,stream_id,batch_id,status) values(?,?,?,?,?,?,?,'ACTIVE')",
+      UUID.randomUUID(),t,student,batch.get("academic_year_id"),batch.get("class_id"),batch.get("stream_id"),r.batchId());
+    db.update("update leads set stage='ADMITTED',updated_at=now() where id=? and tenant_id=?",id,t);
+    addActivity(t,id,null,"CONVERTED","Converted to student "+admission);
+    return Map.of("leadId",id,"studentId",student,"admissionNumber",admission,"batchId",r.batchId());
+  }
+
   @PostMapping("/follow-ups/{id}/complete")
   @PreAuthorize("hasAuthority('admissions.manage')")
   public Map<String,Object> complete(@PathVariable UUID id){
@@ -118,4 +138,5 @@ public class AdmissionsController {
   public record Lead(String name,String phone,String email,String source,String stage,UUID counsellorUserId,String lostReason){}
   public record Activity(UUID userId,String type,String notes){}
   public record FollowUp(UUID assignedUserId,LocalDateTime dueAt,String notes){}
+  public record ConvertRequest(String admissionNumber,UUID batchId){}
 }
