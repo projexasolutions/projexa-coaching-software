@@ -62,6 +62,6 @@ export default function App(){return <BrowserRouter><Routes>
  <Route path="/owner/support" element={<Guard><Shell><Page title="Support" subtitle="Track institute support requests and operational issues."><SupportPage/></Page></Shell></Guard>}/>
  <Route path="/owner/settings" element={<Guard><Shell><Page title="Settings" subtitle="Configure institute-level operational policies."><SettingsPage/></Page></Shell></Guard>}/>
  <Route path="/owner/automation" element={<Guard><Shell><Page title="Automation Center" subtitle="Create controlled event-driven workflows for repetitive operations."><AutomationPage/></Page></Shell></Guard>}/>
- <Route path="/owner/questions" element={<Guard><Shell><Page title="Question Bank" subtitle="Build reusable objective questions for the universal exam engine."><QuestionBankPage/></Page></Shell></Guard>}/>}
+ <Route path="/owner/questions" element={<Guard><Shell><Page title="Question Bank" subtitle="Build reusable objective questions for the universal exam engine."><QuestionBankPage/></Page></Shell></Guard>}/>
  <Route path="*" element={<Navigate to="/owner" replace/>}/>
  </Routes></BrowserRouter>}
