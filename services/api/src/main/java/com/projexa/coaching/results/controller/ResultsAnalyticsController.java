@@ -24,15 +24,20 @@ public class ResultsAnalyticsController {
     Map<String,Object> summary=db.queryForMap("""
       select count(*) students,coalesce(avg(obtained_marks),0) average_marks,coalesce(avg(percentage),0) average_percentage,
              coalesce(max(percentage),0) highest_percentage,
-             count(*) filter(where not exists (
-               select 1 from result_subjects rs
-               join exam_subjects es on es.tenant_id=? and es.exam_id=r.exam_id and es.subject_id=rs.subject_id
-               where rs.result_id=r.id and rs.obtained_marks < es.pass_marks
-             )) pass_count,
              count(*) filter(where exists (
                select 1 from result_subjects rs
+               where rs.result_id=r.id
+             ) and not exists (
+               select 1 from result_subjects rs
                join exam_subjects es on es.tenant_id=? and es.exam_id=r.exam_id and es.subject_id=rs.subject_id
-               where rs.result_id=r.id and rs.obtained_marks < es.pass_marks
+               where rs.result_id=r.id and rs.obtained_marks < coalesce(es.pass_marks,0)
+             )) pass_count,
+             count(*) filter(where not exists (
+               select 1 from result_subjects rs where rs.result_id=r.id
+             ) or exists (
+               select 1 from result_subjects rs
+               join exam_subjects es on es.tenant_id=? and es.exam_id=r.exam_id and es.subject_id=rs.subject_id
+               where rs.result_id=r.id and rs.obtained_marks < coalesce(es.pass_marks,0)
              )) fail_count
       from results where tenant_id=? and exam_id=?
       """,t,t,t,examId);
