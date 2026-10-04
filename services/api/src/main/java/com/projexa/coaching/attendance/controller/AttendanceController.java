@@ -80,7 +80,7 @@ public class AttendanceController {
   @PostMapping("/sessions/{sessionId}/records/bulk")
   @PreAuthorize("hasAuthority('attendance.manage')")
   public Map<String,Object> bulk(@PathVariable UUID sessionId,@RequestBody BulkRequest req){
-    UUID t=TenantContextHolder.getRequired(); UUID batchId=batchId(sessionId,t);
+    UUID t=TenantContextHolder.getRequired(); UUID batchId=batchId(sessionId,t); ensureOpen(sessionId,t);
     if(req==null || req.records()==null) throw new IllegalArgumentException("Attendance records are required");
     for(RecordItem item:req.records()){
       if(item==null || item.studentId()==null) throw new IllegalArgumentException("Student id is required");
@@ -95,7 +95,7 @@ public class AttendanceController {
   @PostMapping("/sessions/{sessionId}/check-in")
   @PreAuthorize("hasRole('STUDENT') or hasRole('INSTITUTE_OWNER') or hasRole('INSTITUTE_ADMIN')")
   public Map<String,Object> checkIn(@PathVariable UUID sessionId,@RequestBody CheckIn req,Authentication auth){
-    UUID t=TenantContextHolder.getRequired(); UUID batchId=batchId(sessionId,t);
+    UUID t=TenantContextHolder.getRequired(); UUID batchId=batchId(sessionId,t); ensureOpen(sessionId,t);
     access.requireOwnStudent(t,req.studentId(),auth);
     if(count("select count(*) from enrollments where tenant_id=? and student_id=? and batch_id=? and status='ACTIVE'",t,req.studentId(),batchId)==0) throw new IllegalArgumentException("Student is not enrolled in this batch");
     if(isRestricted(req.studentId(),t)) return Map.of("allowed",false,"code","FEE_OVERDUE","message","Attendance self check-in is restricted until outstanding fees are cleared");
@@ -115,7 +115,7 @@ public class AttendanceController {
   private void ensureOpen(UUID id,UUID t){String status=db.queryForObject("select status from attendance_sessions where id=? and tenant_id=?",String.class,id,t);if(!"OPEN".equalsIgnoreCase(status))throw new IllegalArgumentException("Attendance session is closed");}
   private boolean isRestricted(UUID student,UUID t){
     try{
-      Boolean enabled=db.queryForObject("select coalesce((settings->'feeAttendanceRestriction'->>'enabled')::boolean,false) from tenant_settings where tenant_id=?",Boolean.class,t);
+      Boolean enabled=db.query("select coalesce((settings->'feeAttendanceRestriction'->>'enabled')::boolean,false) from tenant_settings where tenant_id=?",rs -> rs.next()?rs.getBoolean(1):false,t);
       if(!Boolean.TRUE.equals(enabled)) return false;
       Integer manual=db.queryForObject("select count(*) from student_attendance_restrictions where tenant_id=? and student_id=? and active=true",Integer.class,t,student);
       if(manual!=null&&manual>0)return true;
