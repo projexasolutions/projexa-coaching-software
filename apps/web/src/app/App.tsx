@@ -19,10 +19,11 @@ import SupportPage from '../features/SupportPage';
 import SettingsPage from '../features/SettingsPage';
 import AutomationPage from '../features/AutomationPage';
 import QuestionBankPage from '../features/QuestionBankPage';
+import NotificationsPage from '../features/NotificationsPage';
 
 const nav:any[]=[
  ['/owner','Command Center',DashboardRounded],['/owner/students','Students',PeopleRounded],['/owner/academics','Academics',SchoolRounded],
- ['/owner/attendance','Attendance',EventAvailableRounded],['/owner/timetable','Timetable',CalendarMonthRounded],['/owner/faculty','Faculty',PeopleRounded],['/owner/homework','Homework',AssignmentRounded],['/owner/results','Results & Analytics',BarChartRounded],['/owner/intelligence','AI Intelligence',AutoAwesomeRounded],['/owner/admissions','Admissions CRM',PeopleRounded],['/owner/communication','Communication',ChatRounded],['/portal','Parent / Student Portal',PeopleRounded],['/owner/exams','Exams & Results',QuizRounded],
+ ['/owner/attendance','Attendance',EventAvailableRounded],['/owner/timetable','Timetable',CalendarMonthRounded],['/owner/faculty','Faculty',PeopleRounded],['/owner/homework','Homework',AssignmentRounded],['/owner/results','Results & Analytics',BarChartRounded],['/owner/intelligence','AI Intelligence',AutoAwesomeRounded],['/owner/admissions','Admissions CRM',PeopleRounded],['/owner/communication','Communication',ChatRounded],['/owner/notifications','Notifications',NotificationsRounded],['/portal','Parent / Student Portal',PeopleRounded],['/owner/exams','Exams & Results',QuizRounded],
  ['/owner/finance','Finance',AccountBalanceWalletRounded],
  ['/owner/reports','Reports',BarChartRounded],['/owner/support','Support',SupportAgentRounded],['/owner/settings','Settings',SettingsRounded]
 ];
@@ -62,6 +63,7 @@ export default function App(){return <BrowserRouter><Routes>
  <Route path="/owner/support" element={<Guard><Shell><Page title="Support" subtitle="Track institute support requests and operational issues."><SupportPage/></Page></Shell></Guard>}/>
  <Route path="/owner/settings" element={<Guard><Shell><Page title="Settings" subtitle="Configure institute-level operational policies."><SettingsPage/></Page></Shell></Guard>}/>
  <Route path="/owner/automation" element={<Guard><Shell><Page title="Automation Center" subtitle="Create controlled event-driven workflows for repetitive operations."><AutomationPage/></Page></Shell></Guard>}/>
+ <Route path="/owner/notifications" element={<Guard><Shell><Page title="Notifications" subtitle="System alerts and workflow notifications."><NotificationsPage/></Page></Shell></Guard>}/>
  <Route path="/owner/questions" element={<Guard><Shell><Page title="Question Bank" subtitle="Build reusable objective questions for the universal exam engine."><QuestionBankPage/></Page></Shell></Guard>}/>
  <Route path="*" element={<Navigate to="/owner" replace/>}/>
  </Routes></BrowserRouter>}
