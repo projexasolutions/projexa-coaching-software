@@ -111,7 +111,8 @@ public class AttendanceController {
   private void requireBatch(UUID t,UUID batchId){if(batchId==null || count("select count(*) from batches where id=? and tenant_id=? and status='ACTIVE'",batchId,t)==0) throw new IllegalArgumentException("Batch is invalid for this institute");}
   private int count(String sql,Object... args){Integer n=db.queryForObject(sql,Integer.class,args);return n==null?0:n;}
   private UUID batchId(UUID sessionId,UUID t){try{return db.queryForObject("select batch_id from attendance_sessions where id=? and tenant_id=?",UUID.class,sessionId,t);}catch(Exception e){throw new IllegalArgumentException("Attendance session not found");}}
-  private Map<String,Object> session(UUID id,UUID t){return db.queryForMap("select id,batch_id,subject_id,teacher_id,session_date,start_time,end_time,status from attendance_sessions where id=? and tenant_id=?",id,t);}\n  private void ensureOpen(UUID id,UUID t){String status=db.queryForObject("select status from attendance_sessions where id=? and tenant_id=?",String.class,id,t);if(!"OPEN".equalsIgnoreCase(status))throw new IllegalArgumentException("Attendance session is closed");}
+  private Map<String,Object> session(UUID id,UUID t){return db.queryForMap("select id,batch_id,subject_id,teacher_id,session_date,start_time,end_time,status from attendance_sessions where id=? and tenant_id=?",id,t);}
+  private void ensureOpen(UUID id,UUID t){String status=db.queryForObject("select status from attendance_sessions where id=? and tenant_id=?",String.class,id,t);if(!"OPEN".equalsIgnoreCase(status))throw new IllegalArgumentException("Attendance session is closed");}
   private boolean isRestricted(UUID student,UUID t){
     try{
       Boolean enabled=db.queryForObject("select coalesce((settings->'feeAttendanceRestriction'->>'enabled')::boolean,false) from tenant_settings where tenant_id=?",Boolean.class,t);
