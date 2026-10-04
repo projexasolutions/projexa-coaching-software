@@ -51,10 +51,11 @@ public class FinanceController {
       List<Map<String,Object>> existing=db.queryForList("select id,invoice_id,status from payments where tenant_id=? and idempotency_key=?",t,req.idempotencyKey());
       if(!existing.isEmpty())return Map.of("paymentId",existing.get(0).get("id"),"invoiceId",existing.get(0).get("invoice_id"),"verified","SUCCESS".equals(existing.get(0).get("status")),"idempotent",true);
     }
+    String idempotencyKey=(req.idempotencyKey()==null||req.idempotencyKey().isBlank())?UUID.randomUUID().toString():req.idempotencyKey().trim();
     double amount=req.amount(); double due=((Number)inv.get("amount")).doubleValue()-((Number)inv.get("paid_amount")).doubleValue();
     if(amount<=0||amount>due)throw new IllegalArgumentException("Invalid payment amount");
     UUID payment=UUID.randomUUID();
-    db.update("insert into payments(id,tenant_id,invoice_id,amount,gateway,status,paid_at,idempotency_key) values(?,?,?,?,?,?,?,?)",payment,t,req.invoiceId(),amount,req.gateway()==null?"MANUAL":req.gateway(),"SUCCESS",LocalDateTime.now(),req.idempotencyKey());
+    db.update("insert into payments(id,tenant_id,invoice_id,amount,gateway,status,paid_at,idempotency_key) values(?,?,?,?,?,?,?,?)",payment,t,req.invoiceId(),amount,req.gateway()==null?"MANUAL":req.gateway(),"SUCCESS",LocalDateTime.now(),idempotencyKey);
     db.update("update invoices set paid_amount=paid_amount+?,status=case when paid_amount+?>=amount then 'PAID' else 'PARTIALLY_PAID' end where id=? and tenant_id=?",amount,amount,req.invoiceId(),t);
     return Map.of("paymentId",payment,"invoiceId",req.invoiceId(),"verified",true,"idempotent",false);
   }
