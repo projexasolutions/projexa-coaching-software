@@ -25,8 +25,8 @@ public class ExamEngineController {
     if(!Set.of("SCHEDULED","LIVE").contains(String.valueOf(exam.get("status")))) throw new IllegalArgumentException("Exam is not open for attempts");
     if(count("select count(*) from enrollments where tenant_id=? and student_id=? and status='ACTIVE'",tenant,req.studentId())==0) throw new IllegalArgumentException("Student is not actively enrolled");
     LocalDateTime now=LocalDateTime.now();
-    if(exam.get("starts_at")!=null && now.isBefore(((java.sql.Timestamp)exam.get("starts_at")).toLocalDateTime())) throw new IllegalArgumentException("Exam has not started");
-    if(exam.get("ends_at")!=null && now.isAfter(((java.sql.Timestamp)exam.get("ends_at")).toLocalDateTime())) throw new IllegalArgumentException("Exam has ended");
+    if(exam.get("starts_at")!=null && now.isBefore(timestamp(exam.get("starts_at")))) throw new IllegalArgumentException("Exam has not started");
+    if(exam.get("ends_at")!=null && now.isAfter(timestamp(exam.get("ends_at")))) throw new IllegalArgumentException("Exam has ended");
     UUID existing=findAttempt(examId,req.studentId(),tenant);
     if(existing!=null) return ResponseEntity.ok(Map.of("attemptId",existing,"status","IN_PROGRESS"));
     UUID id=UUID.randomUUID();
@@ -72,6 +72,14 @@ public class ExamEngineController {
     if(type.equals("MCQ_MULTIPLE")||type.equals("MATCHING")){Set<String> given=new TreeSet<>(String.CASE_INSENSITIVE_ORDER);given.addAll(Arrays.asList(a.split(",")));Set<String> correct=new TreeSet<>(String.CASE_INSENSITIVE_ORDER);options.stream().filter(o->Boolean.TRUE.equals(o.get("is_correct"))).forEach(o->correct.add(String.valueOf(o.get("option_text"))));return given.equals(correct);}
     if(type.equals("FILL_BLANK")) return options.stream().filter(o->Boolean.TRUE.equals(o.get("is_correct"))).anyMatch(o->a.equalsIgnoreCase(String.valueOf(o.get("option_text"))));
     return false;
+  }
+  private LocalDateTime timestamp(Object value){
+    if(value==null) return null;
+    if(value instanceof LocalDateTime v) return v;
+    if(value instanceof java.sql.Timestamp v) return v.toLocalDateTime();
+    if(value instanceof java.time.OffsetDateTime v) return v.toLocalDateTime();
+    if(value instanceof java.time.Instant v) return LocalDateTime.ofInstant(v,java.time.ZoneId.systemDefault());
+    throw new IllegalArgumentException("Unsupported exam timestamp");
   }
   private double negative(double marks,boolean enabled){return enabled?-marks:0;}
   public record StartAttempt(UUID studentId){}
