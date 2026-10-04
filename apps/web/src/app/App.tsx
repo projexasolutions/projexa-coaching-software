@@ -14,6 +14,11 @@ import IntelligencePage from '../features/IntelligencePage';
 import AdmissionsPage from '../features/AdmissionsPage';
 import CommunicationPage from '../features/CommunicationPage';
 import PortalPage from '../features/PortalPage';
+import ReportsPage from '../features/ReportsPage';
+import SupportPage from '../features/SupportPage';
+import SettingsPage from '../features/SettingsPage';
+import AutomationPage from '../features/AutomationPage';
+import QuestionBankPage from '../features/QuestionBankPage';
 
 const nav:any[]=[
  ['/owner','Command Center',DashboardRounded],['/owner/students','Students',PeopleRounded],['/owner/academics','Academics',SchoolRounded],
@@ -53,6 +58,10 @@ export default function App(){return <BrowserRouter><Routes>
  <Route path="/portal" element={<Guard><Shell><Page title="Parent / Student Portal" subtitle="Attendance, fees, results and homework in one workspace."><PortalPage/></Page></Shell></Guard>}/>
  <Route path="/owner/communication" element={<Guard><Shell><Page title="Communication" subtitle="Internal conversations and institute communication workspace."><CommunicationPage/></Page></Shell></Guard>}/>
  <Route path="/owner/admissions" element={<Guard><Shell><Page title="Admissions CRM" subtitle="Manage enquiries, counselling, demos, follow-ups and conversions."><AdmissionsPage/></Page></Shell></Guard>}/>
- {['admissions','communication','reports','support','settings'].map(k=><Route key={k} path={`/owner/${k}`} element={<Guard><Shell><Page title={k[0].toUpperCase()+k.slice(1)} subtitle="Operational module."><Placeholder title={k[0].toUpperCase()+k.slice(1)}/></Page></Shell></Guard>}/>)}
+ <Route path="/owner/reports" element={<Guard><Shell><Page title="Reports" subtitle="Institute performance, collections and attendance reporting."><ReportsPage/></Page></Shell></Guard>}/>
+ <Route path="/owner/support" element={<Guard><Shell><Page title="Support" subtitle="Track institute support requests and operational issues."><SupportPage/></Page></Shell></Guard>}/>
+ <Route path="/owner/settings" element={<Guard><Shell><Page title="Settings" subtitle="Configure institute-level operational policies."><SettingsPage/></Page></Shell></Guard>}/>
+ <Route path="/owner/automation" element={<Guard><Shell><Page title="Automation Center" subtitle="Create controlled event-driven workflows for repetitive operations."><AutomationPage/></Page></Shell></Guard>}/>
+ <Route path="/owner/questions" element={<Guard><Shell><Page title="Question Bank" subtitle="Build reusable objective questions for the universal exam engine."><QuestionBankPage/></Page></Shell></Guard>}/>}
  <Route path="*" element={<Navigate to="/owner" replace/>}/>
  </Routes></BrowserRouter>}
