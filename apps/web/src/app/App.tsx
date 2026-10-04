@@ -1,13 +1,14 @@
 import {useState,type ReactNode} from 'react';
 import {BrowserRouter,Routes,Route,Navigate,NavLink,useParams} from 'react-router-dom';
 import {AppBar,Avatar,Box,Button,Chip,Divider,Drawer,IconButton,List,ListItemButton,ListItemIcon,ListItemText,Menu,MenuItem,Stack,Toolbar,Typography} from '@mui/material';
-import {DashboardRounded,PeopleRounded,ChatRounded,SchoolRounded,EventAvailableRounded,CalendarMonthRounded,AssignmentRounded,QuizRounded,AutoAwesomeRounded,AccountBalanceWalletRounded,CampaignRounded,NotificationsRounded,BarChartRounded,SupportAgentRounded,SettingsRounded,LogoutRounded,MenuRounded} from '@mui/icons-material';
+import {DashboardRounded,PeopleRounded,ChatRounded,SchoolRounded,EventAvailableRounded,CalendarMonthRounded,AssignmentRounded,MenuBookRounded,QuizRounded,AutoAwesomeRounded,AccountBalanceWalletRounded,CampaignRounded,NotificationsRounded,BarChartRounded,SupportAgentRounded,SettingsRounded,LogoutRounded,MenuRounded} from '@mui/icons-material';
 import LoginPage from '../features/auth/LoginPage';
 import {useAuth} from '../features/auth/authStore';
 import {LiveDashboard,LiveStudentsPage,LiveStudentProfile,LiveAcademicsPage,LiveAttendancePage,LiveFinancePage} from '../features/Phase1Pages';
 import TimetablePage from '../features/TimetablePage';
 import FacultyPage from '../features/FacultyPage';
 import HomeworkPage from '../features/HomeworkPage';
+import LearningResourcesPage from '../features/LearningResourcesPage';
 import ExamsPage from '../features/ExamsPage';
 import ResultsPage from '../features/ResultsPage';
 import IntelligencePage from '../features/IntelligencePage';
@@ -23,7 +24,7 @@ import NotificationsPage from '../features/NotificationsPage';
 
 const nav:any[]=[
  ['/owner','Command Center',DashboardRounded],['/owner/students','Students',PeopleRounded],['/owner/academics','Academics',SchoolRounded],
- ['/owner/attendance','Attendance',EventAvailableRounded],['/owner/timetable','Timetable',CalendarMonthRounded],['/owner/faculty','Faculty',PeopleRounded],['/owner/homework','Homework',AssignmentRounded],['/owner/results','Results & Analytics',BarChartRounded],['/owner/intelligence','AI Intelligence',AutoAwesomeRounded],['/owner/admissions','Admissions CRM',PeopleRounded],['/owner/communication','Communication',ChatRounded],['/owner/notifications','Notifications',NotificationsRounded],['/portal','Parent / Student Portal',PeopleRounded],['/owner/exams','Exams & Results',QuizRounded],
+ ['/owner/attendance','Attendance',EventAvailableRounded],['/owner/timetable','Timetable',CalendarMonthRounded],['/owner/faculty','Faculty',PeopleRounded],['/owner/homework','Homework',AssignmentRounded],['/owner/learning','Learning Resources',MenuBookRounded],['/owner/results','Results & Analytics',BarChartRounded],['/owner/intelligence','AI Intelligence',AutoAwesomeRounded],['/owner/admissions','Admissions CRM',PeopleRounded],['/owner/communication','Communication',ChatRounded],['/owner/notifications','Notifications',NotificationsRounded],['/portal','Parent / Student Portal',PeopleRounded],['/owner/exams','Exams & Results',QuizRounded],
  ['/owner/finance','Finance',AccountBalanceWalletRounded],
  ['/owner/reports','Reports',BarChartRounded],['/owner/support','Support',SupportAgentRounded],['/owner/settings','Settings',SettingsRounded]
 ];
@@ -53,6 +54,7 @@ export default function App(){return <BrowserRouter><Routes>
  <Route path="/owner/timetable" element={<Guard><Shell><Page title="Timetable Management" subtitle="Schedule batches, teachers and classrooms with conflict protection."><TimetablePage/></Page></Shell></Guard>}/>
  <Route path="/owner/faculty" element={<Guard><Shell><Page title="Faculty Management" subtitle="Manage teachers, teaching assignments and classroom resources."><FacultyPage/></Page></Shell></Guard>}/>
  <Route path="/owner/homework" element={<Guard><Shell><Page title="Teaching & Learning" subtitle="Create homework and track student submissions."><HomeworkPage/></Page></Shell></Guard>}/>
+ <Route path="/owner/learning" element={<Guard><Shell><Page title="Learning Resources" subtitle="Publish notes, PDFs, videos and recordings to batches and subjects."><LearningResourcesPage/></Page></Shell></Guard>}/>
  <Route path="/owner/exams" element={<Guard><Shell><Page title="Exams & Results" subtitle="Build exams, configure subjects and manage question sets."><ExamsPage/></Page></Shell></Guard>}/>
  <Route path="/owner/results" element={<Guard><Shell><Page title="Results & Analytics" subtitle="Generate, publish and analyze examination performance."><ResultsPage/></Page></Shell></Guard>}/>
  <Route path="/owner/intelligence" element={<Guard><Shell><Page title="AI Intelligence" subtitle="Prioritize institute risks and learning opportunities from operational data."><IntelligencePage/></Page></Shell></Guard>}/>
