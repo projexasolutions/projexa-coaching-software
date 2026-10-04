@@ -67,6 +67,16 @@ public class AttendanceController {
     return db.queryForMap("select count(distinct s.id) sessions,count(distinct e.student_id) students,count(ar.id) marked,count(ar.id) filter(where ar.status='PRESENT') present,count(ar.id) filter(where ar.status='ABSENT') absent,count(ar.id) filter(where ar.status='LATE') late,count(ar.id) filter(where ar.status='LEAVE') leave,coalesce(round(100.0*count(ar.id) filter(where ar.status in ('PRESENT','LATE'))/nullif(count(ar.id),0),2),0) attendance_percentage from attendance_sessions s join enrollments e on e.tenant_id=s.tenant_id and e.batch_id=s.batch_id and e.status='ACTIVE' left join attendance_records ar on ar.tenant_id=s.tenant_id and ar.session_id=s.id and ar.student_id=e.student_id where s.tenant_id=? and s.batch_id=? and s.session_date>=current_date-?::int group by s.batch_id",t,batchId,safeDays);
   }
 
+  @PostMapping("/sessions/{sessionId}/close")
+  @PreAuthorize("hasAuthority('attendance.manage')")
+  public Map<String,Object> close(@PathVariable UUID sessionId){
+    UUID t=TenantContextHolder.getRequired();
+    batchId(sessionId,t);
+    int updated=db.update("update attendance_sessions set status='CLOSED' where id=? and tenant_id=? and status='OPEN'",sessionId,t);
+    if(updated==0) throw new IllegalArgumentException("Attendance session is not open or was not found");
+    return session(sessionId,t);
+  }
+
   @PostMapping("/sessions/{sessionId}/records/bulk")
   @PreAuthorize("hasAuthority('attendance.manage')")
   public Map<String,Object> bulk(@PathVariable UUID sessionId,@RequestBody BulkRequest req){
@@ -101,7 +111,7 @@ public class AttendanceController {
   private void requireBatch(UUID t,UUID batchId){if(batchId==null || count("select count(*) from batches where id=? and tenant_id=? and status='ACTIVE'",batchId,t)==0) throw new IllegalArgumentException("Batch is invalid for this institute");}
   private int count(String sql,Object... args){Integer n=db.queryForObject(sql,Integer.class,args);return n==null?0:n;}
   private UUID batchId(UUID sessionId,UUID t){try{return db.queryForObject("select batch_id from attendance_sessions where id=? and tenant_id=?",UUID.class,sessionId,t);}catch(Exception e){throw new IllegalArgumentException("Attendance session not found");}}
-  private Map<String,Object> session(UUID id,UUID t){return db.queryForMap("select id,batch_id,subject_id,teacher_id,session_date,start_time,end_time,status from attendance_sessions where id=? and tenant_id=?",id,t);}
+  private Map<String,Object> session(UUID id,UUID t){return db.queryForMap("select id,batch_id,subject_id,teacher_id,session_date,start_time,end_time,status from attendance_sessions where id=? and tenant_id=?",id,t);}\n  private void ensureOpen(UUID id,UUID t){String status=db.queryForObject("select status from attendance_sessions where id=? and tenant_id=?",String.class,id,t);if(!"OPEN".equalsIgnoreCase(status))throw new IllegalArgumentException("Attendance session is closed");}
   private boolean isRestricted(UUID student,UUID t){
     try{
       Boolean enabled=db.queryForObject("select coalesce((settings->'feeAttendanceRestriction'->>'enabled')::boolean,false) from tenant_settings where tenant_id=?",Boolean.class,t);
