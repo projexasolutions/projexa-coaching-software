@@ -55,7 +55,13 @@ public class FinanceController {
     double amount=req.amount(); double due=((Number)inv.get("amount")).doubleValue()-((Number)inv.get("paid_amount")).doubleValue();
     if(amount<=0||amount>due)throw new IllegalArgumentException("Invalid payment amount");
     UUID payment=UUID.randomUUID();
-    db.update("insert into payments(id,tenant_id,invoice_id,amount,gateway,status,paid_at,idempotency_key) values(?,?,?,?,?,?,?,?)",payment,t,req.invoiceId(),amount,req.gateway()==null?"MANUAL":req.gateway(),"SUCCESS",LocalDateTime.now(),idempotencyKey);
+    List<UUID> inserted=db.query("insert into payments(id,tenant_id,invoice_id,amount,gateway,status,paid_at,idempotency_key) values(?,?,?,?,?,?,?,?) on conflict(tenant_id,idempotency_key) do nothing returning id",
+      rs -> { List<UUID> ids=new ArrayList<>(); while(rs.next()) ids.add((UUID)rs.getObject(1)); return ids; },
+      payment,t,req.invoiceId(),amount,req.gateway()==null?"MANUAL":req.gateway(),"SUCCESS",LocalDateTime.now(),idempotencyKey);
+    if(inserted.isEmpty()){
+      Map<String,Object> existing=db.queryForMap("select id,invoice_id,status from payments where tenant_id=? and idempotency_key=?",t,idempotencyKey);
+      return Map.of("paymentId",existing.get("id"),"invoiceId",existing.get("invoice_id"),"verified","SUCCESS".equals(existing.get("status")),"idempotent",true);
+    }
     db.update("update invoices set paid_amount=paid_amount+?,status=case when paid_amount+?>=amount then 'PAID' else 'PARTIALLY_PAID' end where id=? and tenant_id=?",amount,amount,req.invoiceId(),t);
     return Map.of("paymentId",payment,"invoiceId",req.invoiceId(),"verified",true,"idempotent",false);
   }
@@ -68,8 +74,8 @@ public class FinanceController {
   }
 
   private String nextInvoiceNumber(UUID t){
-    Long n=db.queryForObject("select count(*)+1 from invoices where tenant_id=?",Long.class,t);
-    return "INV-"+LocalDate.now().getYear()+"-"+String.format("%05d",n);
+    Long n=db.queryForObject("select nextval('invoice_number_seq')",Long.class);
+    return "INV-"+LocalDate.now().getYear()+"-"+String.format("%08d",n);
   }
   public record InvoiceRequest(UUID studentId,UUID installmentId,String invoiceNumber,double amount,LocalDate dueDate){}
   public record PaymentRequest(UUID invoiceId,double amount,String gateway,String idempotencyKey){}
