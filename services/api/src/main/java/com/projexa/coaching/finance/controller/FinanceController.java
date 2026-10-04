@@ -28,10 +28,14 @@ public class FinanceController {
   @PreAuthorize("hasAuthority('finance.manage') or hasAnyRole('INSTITUTE_OWNER','INSTITUTE_ADMIN')")
   public Map<String,Object> createInvoice(@RequestBody InvoiceRequest req){
     UUID t=TenantContextHolder.getRequired();
+    if(req==null||req.studentId()==null)throw new IllegalArgumentException("Student is required");
     if(req.amount()<=0)throw new IllegalArgumentException("Amount must be greater than zero");
+    if(req.dueDate()==null)throw new IllegalArgumentException("Due date is required");
+    if(db.queryForObject("select count(*) from students where id=? and tenant_id=?",Integer.class,req.studentId(),t)==0)throw new IllegalArgumentException("Student is invalid for this institute");
+    if(req.installmentId()!=null&&db.queryForObject("select count(*) from fee_installments fi join fee_plans fp on fp.id=fi.fee_plan_id where fi.id=? and fp.tenant_id=?",Integer.class,req.installmentId(),t)==0)throw new IllegalArgumentException("Installment is invalid for this institute");
     UUID id=UUID.randomUUID();
     String number=req.invoiceNumber()==null||req.invoiceNumber().isBlank()?nextInvoiceNumber(t):req.invoiceNumber();
-    db.update("insert into invoices(id,tenant_id,student_id,installment_id,invoice_number,amount,paid_amount,due_date,status) values(?,?,?,?,?,?,0,?,?)",id,t,req.studentId(),req.installmentId(),number,req.amount(),req.dueDate(),req.amount()==0?"PAID":"UNPAID");
+    db.update("insert into invoices(id,tenant_id,student_id,installment_id,invoice_number,amount,paid_amount,due_date,status) values(?,?,?,?,?,?,0,?,?)",id,t,req.studentId(),req.installmentId(),number,req.amount(),req.dueDate(),"UNPAID");
     return db.queryForMap("select * from invoices where id=? and tenant_id=?",id,t);
   }
 
