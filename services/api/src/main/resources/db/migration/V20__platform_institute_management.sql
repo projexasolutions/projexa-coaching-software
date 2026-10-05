@@ -19,9 +19,18 @@ INSERT INTO permissions(code,description) VALUES
 ('platform.institutes.manage','Create and configure platform institutes')
 ON CONFLICT (code) DO NOTHING;
 
+INSERT INTO roles(id,tenant_id,name,code,description,system_role) VALUES
+('00000000-0000-0000-0000-000000000020',NULL,'Projexa Platform Admin','PLATFORM_ADMIN','Internal Projexa platform administration',TRUE)
+ON CONFLICT (id) DO NOTHING;
+
 INSERT INTO role_permissions(role_id,permission_id)
-SELECT r.id,p.id FROM roles r CROSS JOIN permissions p
-WHERE r.code='INSTITUTE_OWNER' AND p.code IN ('platform.institutes.read','platform.institutes.manage')
+SELECT '00000000-0000-0000-0000-000000000020',id FROM permissions
+WHERE code IN ('platform.institutes.read','platform.institutes.manage')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO user_roles(user_id,role_id)
+SELECT u.id,'00000000-0000-0000-0000-000000000020' FROM users u
+WHERE u.email='owner@demo.projexa.local'
 ON CONFLICT DO NOTHING;
 
 INSERT INTO platform_admins(user_id)
