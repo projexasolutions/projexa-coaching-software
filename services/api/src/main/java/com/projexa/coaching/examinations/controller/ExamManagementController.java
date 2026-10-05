@@ -46,9 +46,10 @@ public class ExamManagementController {
   @PutMapping("/{id}")
   @PreAuthorize("hasAuthority('exams.manage')")
   public Map<String,Object> update(@PathVariable UUID id,@RequestBody ExamRequest r){
-    UUID t=TenantContextHolder.getRequired(); exam(t,id); validate(r); requireYear(t,r.academicYearId()); validateWindow(r.startsAt(),r.endsAt());
+    UUID t=TenantContextHolder.getRequired(); Map<String,Object> current=exam(t,id); validate(r); requireYear(t,r.academicYearId()); validateWindow(r.startsAt(),r.endsAt());
+    String nextStatus=normalizeStatus(r.status()); ensureTransition(String.valueOf(current.get("status")),nextStatus);
     db.update("update exams set academic_year_id=?,name=?,exam_type=?,starts_at=?,ends_at=?,status=? where id=? and tenant_id=?",
-      r.academicYearId(),r.name().trim(),r.examType().trim().toUpperCase(),r.startsAt(),r.endsAt(),normalizeStatus(r.status()),id,t);
+      r.academicYearId(),r.name().trim(),r.examType().trim().toUpperCase(),r.startsAt(),r.endsAt(),nextStatus,id,t);
     return exam(t,id);
   }
 
@@ -70,7 +71,7 @@ public class ExamManagementController {
   @PostMapping("/{id}/subjects")
   @PreAuthorize("hasAuthority('exams.manage')")
   public Map<String,Object> addSubject(@PathVariable UUID id,@RequestBody ExamSubjectRequest r){
-    UUID t=TenantContextHolder.getRequired(); exam(t,id); validateSubject(t,r.subjectId()); 
+    UUID t=TenantContextHolder.getRequired(); ensureConfigurable(t,id); validateSubject(t,r.subjectId()); 
     if(r.maxMarks()==null||r.maxMarks()<=0) throw new IllegalArgumentException("Maximum marks must be greater than zero");
     if(r.passMarks()!=null&&(r.passMarks()<0||r.passMarks()>r.maxMarks())) throw new IllegalArgumentException("Pass marks must be between 0 and maximum marks");
     if(r.negativeMarking()!=null&&r.negativeMarking()<0) throw new IllegalArgumentException("Negative marking cannot be negative");
@@ -82,7 +83,7 @@ public class ExamManagementController {
   @DeleteMapping("/{id}/subjects/{subjectId}")
   @PreAuthorize("hasAuthority('exams.manage')")
   public Map<String,Object> removeSubject(@PathVariable UUID id,@PathVariable UUID subjectId){
-    UUID t=TenantContextHolder.getRequired(); exam(t,id);
+    UUID t=TenantContextHolder.getRequired(); ensureConfigurable(t,id);
     db.update("delete from exam_subjects where tenant_id=? and exam_id=? and subject_id=?",t,id,subjectId);
     db.update("delete from exam_questions where tenant_id=? and exam_id=? and subject_id=?",t,id,subjectId);
     return Map.of("deleted",true);
@@ -99,7 +100,7 @@ public class ExamManagementController {
   @Transactional
   @PreAuthorize("hasAuthority('exams.manage')")
   public Map<String,Object> setQuestions(@PathVariable UUID id,@RequestBody QuestionSelection r){
-    UUID t=TenantContextHolder.getRequired(); exam(t,id);
+    UUID t=TenantContextHolder.getRequired(); ensureConfigurable(t,id);
     List<UUID> ids=r==null||r.questionIds()==null?List.of():r.questionIds();
     if(new HashSet<>(ids).size()!=ids.size()) throw new IllegalArgumentException("Duplicate questions are not allowed");
     db.update("delete from exam_questions where tenant_id=? and exam_id=?",t,id);
@@ -132,6 +133,8 @@ public class ExamManagementController {
   private void validate(ExamRequest r){if(r==null||r.academicYearId()==null)throw new IllegalArgumentException("Academic year is required");if(r.name()==null||r.name().trim().isEmpty())throw new IllegalArgumentException("Exam name is required");if(r.examType()==null||r.examType().trim().isEmpty())throw new IllegalArgumentException("Exam type is required");}
   private void validateWindow(LocalDateTime s,LocalDateTime e){if(s!=null&&e!=null&&!e.isAfter(s))throw new IllegalArgumentException("Exam end must be after start");}
   private String normalizeStatus(String s){String v=s==null?"DRAFT":s.trim().toUpperCase();if(!Set.of("DRAFT","SCHEDULED","LIVE","COMPLETED","ARCHIVED").contains(v))throw new IllegalArgumentException("Unsupported exam status");return v;}
+  private void ensureConfigurable(UUID t,UUID id){ Map<String,Object> e=exam(t,id); String s=String.valueOf(e.get("status")); if(!Set.of("DRAFT","SCHEDULED").contains(s)) throw new IllegalArgumentException("Exam configuration cannot be changed after the exam is LIVE, COMPLETED, or ARCHIVED"); }
+  private void ensureTransition(String current,String next){ if(current.equals(next)) return; Map<String,Set<String>> allowed=Map.of("DRAFT",Set.of("SCHEDULED","LIVE","ARCHIVED"),"SCHEDULED",Set.of("LIVE","ARCHIVED"),"LIVE",Set.of("COMPLETED","ARCHIVED"),"COMPLETED",Set.of("ARCHIVED"),"ARCHIVED",Set.of()); if(!allowed.getOrDefault(current,Set.of()).contains(next)) throw new IllegalArgumentException("Invalid exam status transition: "+current+" -> "+next); }
   private void requireYear(UUID t,UUID id){if(count("select count(*) from academic_years where id=? and tenant_id=?",id,t)==0)throw new IllegalArgumentException("Academic year is invalid for this institute");}
   private void validateSubject(UUID t,UUID id){if(id==null||count("select count(*) from subjects where id=? and tenant_id=? and active=true",id,t)==0)throw new IllegalArgumentException("Subject is invalid for this institute");}
   private int count(String sql,Object... args){Integer n=db.queryForObject(sql,Integer.class,args);return n==null?0:n;}
