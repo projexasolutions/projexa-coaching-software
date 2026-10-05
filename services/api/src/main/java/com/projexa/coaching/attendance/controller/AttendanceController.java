@@ -101,6 +101,7 @@ public class AttendanceController {
   @PreAuthorize("hasRole('STUDENT') or hasRole('INSTITUTE_OWNER') or hasRole('INSTITUTE_ADMIN')")
   public Map<String,Object> checkIn(@PathVariable UUID sessionId,@RequestBody CheckIn req,Authentication auth){
     UUID t=TenantContextHolder.getRequired(); UUID batchId=batchId(sessionId,t); ensureOpen(sessionId,t);
+    if(req==null || req.studentId()==null) throw new IllegalArgumentException("Student id is required");
     access.requireOwnStudent(t,req.studentId(),auth);
     if(count("select count(*) from enrollments where tenant_id=? and student_id=? and batch_id=? and status='ACTIVE'",t,req.studentId(),batchId)==0) throw new IllegalArgumentException("Student is not enrolled in this batch");
     if(isRestricted(req.studentId(),t)) return Map.of("allowed",false,"code","FEE_OVERDUE","message","Attendance self check-in is restricted until outstanding fees are cleared");
