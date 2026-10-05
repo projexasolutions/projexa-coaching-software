@@ -1,7 +1,7 @@
 name: Projexa CI
 on:
   push:
-    branches: [main, develop, "ui/**"]
+    branches: [main, develop, "ui/**", "release/**"]
   pull_request:
     branches: [main, develop]
 
