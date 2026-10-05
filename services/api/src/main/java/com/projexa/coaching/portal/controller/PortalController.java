@@ -17,6 +17,7 @@ public class PortalController {
  public PortalController(JdbcTemplate db,ResourceAccess access){this.db=db;this.access=access;}
 
  @GetMapping("/me")
+ @PreAuthorize("isAuthenticated()")
  public Map<String,Object> me(Authentication auth){
    UUID t=TenantContextHolder.getRequired(),u=UUID.fromString(auth.getName());
    List<Map<String,Object>> children=db.queryForList("""
