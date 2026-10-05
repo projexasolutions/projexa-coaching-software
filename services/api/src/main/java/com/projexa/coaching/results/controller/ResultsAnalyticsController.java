@@ -125,6 +125,7 @@ public class ResultsAnalyticsController {
     String examStatus=String.valueOf(examRow.get("status"));
     if(!Set.of("SCHEDULED","LIVE").contains(examStatus)) throw new IllegalArgumentException("Results can only be published for an open or live exam");
     Object endsAt=examRow.get("ends_at");
+    if(endsAt instanceof LocalDateTime dt && LocalDateTime.now().isBefore(dt)) throw new IllegalArgumentException("Exam has not ended yet");
     if(endsAt instanceof java.sql.Timestamp ts && LocalDateTime.now().isBefore(ts.toLocalDateTime())) throw new IllegalArgumentException("Exam has not ended yet");
     int draft=count("select count(*) from results where tenant_id=? and exam_id=? and status='DRAFT'",t,examId);
     if(draft==0) throw new IllegalArgumentException("No generated draft results to publish");
