@@ -44,7 +44,7 @@ export default function PortalPage(){
     {tab===3&&<Results data={data}/>}
     {tab===4&&<Fees data={data}/>}
     {tab===5&&<Schedule data={data}/>}
-    {tab===6&&<Exams data={data} studentId={id} onOpen={setExam}/>}
+    {tab===6&&<Exams data={data} studentId={id} isStudent={isStudent} onOpen={setExam}/>}
     {tab===7&&<Notifications data={data}/>}
    </>
   }
@@ -129,8 +129,8 @@ function Schedule({data}:{data:any}){
  return <Stack spacing={1.5}>{Object.keys(groups).sort((a,b)=>Number(a)-Number(b)).map(day=><Card key={day}><CardContent><Typography sx={{fontWeight:900,mb:1.2}}>{dayName(day)}</Typography><Stack divider={<Divider/>}>{groups[day].map((x:any,i:number)=><Stack key={i} direction="row" spacing={1.5} sx={{py:1.2,alignItems:'center'}}><ScheduleRounded sx={{color:'#0f766e'}}/><Box sx={{flex:1}}><Typography sx={{fontWeight:800,fontSize:13}}>{x.subject_name}</Typography><Typography sx={{fontSize:11.5,color:'#64748b'}}>{x.teacher_name||'Teacher not assigned'} · {x.classroom_id||'Room not assigned'}</Typography></Box><Typography sx={{fontSize:12,fontWeight:800}}>{x.start_time}–{x.end_time}</Typography></Stack>)}</Stack></CardContent></Card>)}{!(data.timetable||[]).length&&<Empty title="No timetable published" text="Your batch timetable will appear here once configured."/>}</Stack>
 }
 
-function Exams({data,studentId,onOpen}:{data:any;studentId:string;onOpen:(x:any)=>void}){
- return <Stack spacing={1.5}>{(data.exams||[]).map((x:any)=><Card key={x.id}><CardContent><Stack direction={{xs:'column',sm:'row'}} spacing={2} alignItems={{sm:'center'}}><Box sx={{width:46,height:46,borderRadius:2,bgcolor:'#eef8f6',display:'grid',placeItems:'center'}}><QuizRounded sx={{color:'#0f766e'}}/></Box><Box sx={{flex:1}}><Typography sx={{fontWeight:900}}>{x.name}</Typography><Typography sx={{fontSize:12,color:'#64748b'}}>{x.exam_type} · {x.status}</Typography><Typography sx={{fontSize:11.5,color:'#94a3b8',mt:.5}}>{dateTime(x.starts_at)} → {dateTime(x.ends_at)}</Typography></Box><Button variant="contained" onClick={()=>onOpen({exam:x,studentId})}>Open exam</Button></Stack></CardContent></Card>)}{!(data.exams||[]).length&&<Empty title="No upcoming exams" text="Scheduled exams will appear here."/>}</Stack>
+function Exams({data,studentId,isStudent,onOpen}:{data:any;studentId:string;isStudent?:boolean;onOpen:(x:any)=>void}){
+ return <Stack spacing={1.5}>{(data.exams||[]).map((x:any)=><Card key={x.id}><CardContent><Stack direction={{xs:'column',sm:'row'}} spacing={2} alignItems={{sm:'center'}}><Box sx={{width:46,height:46,borderRadius:2,bgcolor:'#eef8f6',display:'grid',placeItems:'center'}}><QuizRounded sx={{color:'#0f766e'}}/></Box><Box sx={{flex:1}}><Typography sx={{fontWeight:900}}>{x.name}</Typography><Typography sx={{fontSize:12,color:'#64748b'}}>{x.exam_type} · {x.status}</Typography><Typography sx={{fontSize:11.5,color:'#94a3b8',mt:.5}}>{dateTime(x.starts_at)} → {dateTime(x.ends_at)}</Typography></Box>{isStudent?<Button variant="contained" onClick={()=>onOpen({exam:x,studentId})}>Start exam</Button>:<Chip label="Scheduled" variant="outlined"/>}</Stack></CardContent></Card>)}{!(data.exams||[]).length&&<Empty title="No upcoming exams" text="Scheduled exams will appear here."/>}</Stack>
 }
 
 function Notifications({data}:{data:any}){return <Stack spacing={1.25}>{(data.notifications||[]).map((x:any)=><Card key={x.id} sx={{borderLeft:x.read_at?'1px solid #e8edf3':'4px solid #0f766e'}}><CardContent><Stack direction="row" spacing={1.5}><NotificationsRounded sx={{color:'#0f766e'}}/><Box><Typography sx={{fontWeight:900}}>{x.title}</Typography><Typography sx={{fontSize:12.5,color:'#64748b',mt:.4}}>{x.body||'No additional details.'}</Typography><Typography sx={{fontSize:10.5,color:'#94a3b8',mt:1}}>{dateTime(x.created_at)}</Typography></Box></Stack></CardContent></Card>)}{!(data.notifications||[]).length&&<Empty title="You're all caught up" text="New institute notifications will appear here."/>}</Stack>}
