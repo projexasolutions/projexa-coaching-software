@@ -6,6 +6,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 
@@ -42,6 +43,7 @@ public class PlatformInstituteController {
 
     @PostMapping
     @PreAuthorize("hasAuthority('platform.institutes.manage')")
+    @Transactional
     public ApiResponse<Map<String,Object>> create(
             @RequestBody Map<String,Object> p,
             Authentication auth) {
@@ -80,6 +82,7 @@ public class PlatformInstituteController {
 
     @PutMapping("/{id}/status")
     @PreAuthorize("hasAuthority('platform.institutes.manage')")
+    @Transactional
     public ApiResponse<Void> status(
             @PathVariable UUID id,
             @RequestBody Map<String,Object> p,
@@ -106,7 +109,7 @@ public class PlatformInstituteController {
                 left join institute_setup_profiles p on p.tenant_id=t.id
                 where t.id=?
             """, id);
-        } catch (Exception e) {
+        } catch (org.springframework.dao.EmptyResultDataAccessException e) {
             throw new ApiException("NOT_FOUND", "Institute not found.");
         }
     }
