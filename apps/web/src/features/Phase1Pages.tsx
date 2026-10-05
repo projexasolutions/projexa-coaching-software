@@ -13,17 +13,76 @@ function useList(endpoint:string){
  useEffect(()=>{load();},[endpoint]); return {rows,loading,error,load,setRows};
 }
 function Busy({loading,error}:{loading:boolean;error:string}){if(loading)return <Typography sx={{color:'text.secondary',py:4,textAlign:'center'}}>Loading live data…</Typography>;if(error)return <Alert severity="error">{error}</Alert>;return null;}
-function Stat({label,value,caption,icon:Icon}:{label:string;value:any;caption?:string;icon:any}){return <Card elevation={0} sx={{border:'1px solid #e5e7eb',borderRadius:3}}><CardContent><Icon sx={{fontSize:20,color:'#0f766e'}}/><Typography sx={{fontSize:12,color:'text.secondary',mt:1}}>{label}</Typography><Typography sx={{fontSize:26,fontWeight:900}}>{value}</Typography>{caption&&<Typography sx={{fontSize:11,color:'text.secondary'}}>{caption}</Typography>}</CardContent></Card>}
+function Stat({label,value,caption,icon:Icon,trend}:{label:string;value:any;caption?:string;icon:any;trend?:string}){
+ return <Card sx={{height:'100%',position:'relative',overflow:'hidden'}}>
+  <CardContent sx={{p:{xs:2,md:2.5}}}>
+   <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+    <Box sx={{width:38,height:38,borderRadius:2.2,bgcolor:'#e8f8f5',color:'#0f766e',display:'grid',placeItems:'center'}}><Icon sx={{fontSize:19}}/></Box>
+    {trend&&<Chip size="small" label={trend} sx={{bgcolor:'#f0fdf4',color:'#15803d',fontSize:10}}/>}
+   </Stack>
+   <Typography sx={{fontSize:12,color:'#64748b',mt:2}}>{label}</Typography>
+   <Typography sx={{fontSize:{xs:24,md:28},fontWeight:950,letterSpacing:-.8,mt:.25}}>{value}</Typography>
+   {caption&&<Typography sx={{fontSize:11,color:'#94a3b8',mt:.35}}>{caption}</Typography>}
+  </CardContent>
+ </Card>
+}
 
 export function LiveDashboard(){
  const [data,setData]=useState<any>({}),[loading,setLoading]=useState(true),[error,setError]=useState('');
  const load=async()=>{setLoading(true);try{setData(unwrap(await api.get('/dashboard/summary'))||{});setError('')}catch(e){setError(err(e))}finally{setLoading(false)}};useEffect(()=>{load()},[]);
- if(error)return <Alert severity="error">{error}</Alert>;
- return <Stack spacing={2.5}><Stack direction="row" justifyContent="flex-end"><Button variant="outlined" startIcon={<RefreshRounded/>} onClick={load}>Refresh</Button></Stack>
- {loading?<Card><CardContent><Typography sx={{py:8,textAlign:'center'}}>Loading institute command center…</Typography></CardContent></Card>:<>
- <Box sx={{display:'grid',gridTemplateColumns:{xs:'1fr 1fr',lg:'repeat(4,1fr)'},gap:2}}><Stat label="Active Students" value={data.students??0} caption="Current tenant" icon={PeopleRounded}/><Stat label="Today's Attendance" value={`${data.attendance??0}%`} caption={`${data.todaySessions??0} sessions`} icon={EventAvailableRounded}/><Stat label="Collected" value={money(data.collected)} caption="All recorded invoices" icon={PaymentsRounded}/><Stat label="Outstanding" value={money(data.outstanding)} caption={`${data.overdue??0} overdue invoices`} icon={TrendingUpRounded}/></Box>
- <Box sx={{display:'grid',gridTemplateColumns:{xs:'1fr',lg:'1.3fr .7fr'},gap:2}}><Card elevation={0} sx={{border:'1px solid #e5e7eb'}}><CardContent><Typography sx={{fontWeight:900}}>Recent payments</Typography><Typography sx={{fontSize:12,color:'text.secondary',mb:2}}>Live payment ledger</Typography><Table size="small"><TableHead><TableRow><TableCell>Student</TableCell><TableCell>Invoice</TableCell><TableCell align="right">Amount</TableCell><TableCell>Status</TableCell></TableRow></TableHead><TableBody>{(data.recentPayments||[]).map((p:any)=><TableRow key={p.id}><TableCell>{p.first_name} {p.last_name||''}</TableCell><TableCell>{p.invoice_number}</TableCell><TableCell align="right">{money(p.amount)}</TableCell><TableCell><Chip size="small" label="SUCCESS" color="success" variant="outlined"/></TableCell></TableRow>)}{!(data.recentPayments||[]).length&&<TableRow><TableCell colSpan={4}>No payments recorded yet.</TableCell></TableRow>}</TableBody></Table></CardContent></Card>
- <Card elevation={0} sx={{border:'1px solid #e5e7eb'}}><CardContent><Typography fontWeight={900}>Institute health</Typography><Stack spacing={1.2} mt={2}>{[['Active batches',data.batches],['Open alerts',data.alerts],['Overdue invoices',data.overdue]].map(([a,b])=><Stack key={a as string} direction="row" justifyContent="space-between" p={1.3} sx={{bgcolor:'#f8fafc',borderRadius:2}}><Typography sx={{fontSize:13}}>{a as string}</Typography><Typography sx={{fontWeight:900}}>{b as any}</Typography></Stack>)}</Stack></CardContent></Card></Box></>}</Stack>
+ if(error)return <Alert severity="error" sx={{borderRadius:3}}>{error}</Alert>;
+ return <Stack spacing={2.5}>
+  <Stack direction={{xs:'column',sm:'row'}} justifyContent="space-between" alignItems={{sm:'center'}} gap={1}>
+   <Box><Typography sx={{fontSize:12,color:'#94a3b8',fontWeight:700}}>TODAY AT A GLANCE</Typography><Typography sx={{fontSize:13,color:'#64748b',mt:.25}}>Monitor the institute from one place.</Typography></Box>
+   <Button variant="outlined" startIcon={<RefreshRounded/>} onClick={load} sx={{alignSelf:{xs:'stretch',sm:'auto'}}}>Refresh data</Button>
+  </Stack>
+  {loading?<Card><CardContent><Typography sx={{py:8,textAlign:'center',color:'#64748b'}}>Loading institute command center…</Typography></CardContent></Card>:<>
+   <Box sx={{display:'grid',gridTemplateColumns:{xs:'1fr 1fr',lg:'repeat(4,1fr)'},gap:1.75}}>
+    <Stat label="Active Students" value={data.students??0} caption="Current tenant" icon={PeopleRounded} trend="LIVE"/>
+    <Stat label="Today's Attendance" value={`${data.attendance??0}%`} caption={`${data.todaySessions??0} sessions today`} icon={EventAvailableRounded}/>
+    <Stat label="Collected" value={money(data.collected)} caption="Across recorded invoices" icon={PaymentsRounded}/>
+    <Stat label="Outstanding" value={money(data.outstanding)} caption={`${data.overdue??0} overdue invoices`} icon={TrendingUpRounded}/>
+   </Box>
+   <Box sx={{display:'grid',gridTemplateColumns:{xs:'1fr',lg:'minmax(0,1.45fr) minmax(300px,.75fr)'},gap:1.75}}>
+    <Card>
+     <CardContent sx={{p:0}}>
+      <Box sx={{px:{xs:2,md:2.5},py:2.25,borderBottom:'1px solid #edf1f5'}}>
+       <Typography sx={{fontWeight:900,fontSize:15}}>Recent payments</Typography>
+       <Typography sx={{fontSize:11.5,color:'#94a3b8',mt:.35}}>Latest activity from your payment ledger</Typography>
+      </Box>
+      <Box sx={{overflowX:'auto'}}>
+       <Table size="small">
+        <TableHead><TableRow><TableCell>Student</TableCell><TableCell>Invoice</TableCell><TableCell align="right">Amount</TableCell><TableCell>Status</TableCell></TableRow></TableHead>
+        <TableBody>
+         {(data.recentPayments||[]).map((p:any)=><TableRow hover key={p.id}>
+          <TableCell><Typography sx={{fontWeight:750,fontSize:13}}>{p.first_name} {p.last_name||''}</Typography></TableCell>
+          <TableCell sx={{color:'#64748b'}}>{p.invoice_number}</TableCell>
+          <TableCell align="right"><Typography sx={{fontWeight:850}}>{money(p.amount)}</Typography></TableCell>
+          <TableCell><Chip size="small" label="SUCCESS" color="success" variant="outlined"/></TableCell>
+         </TableRow>)}
+         {!(data.recentPayments||[]).length&&<TableRow><TableCell colSpan={4}><Typography sx={{py:4,textAlign:'center',color:'#94a3b8'}}>No payments recorded yet.</Typography></TableCell></TableRow>}
+        </TableBody>
+       </Table>
+      </Box>
+     </CardContent>
+    </Card>
+    <Card>
+     <CardContent sx={{p:{xs:2,md:2.5}}}>
+      <Typography sx={{fontWeight:900,fontSize:15}}>Institute health</Typography>
+      <Typography sx={{fontSize:11.5,color:'#94a3b8',mt:.35,mb:2}}>Key operational indicators</Typography>
+      <Stack spacing={1}>
+       {[['Active batches',data.batches,'Batches currently running'],['Open alerts',data.alerts,'Needs attention'],['Overdue invoices',data.overdue,'Requires follow-up']].map(([a,b,c])=>
+        <Box key={a as string} sx={{p:1.4,bgcolor:'#f8fafc',border:'1px solid #eef2f6',borderRadius:2.25}}>
+         <Stack direction="row" justifyContent="space-between" alignItems="center"><Typography sx={{fontSize:12.5,fontWeight:700}}>{a as string}</Typography><Typography sx={{fontWeight:950,fontSize:17}}>{b as any}</Typography></Stack>
+         <Typography sx={{fontSize:10.5,color:'#94a3b8',mt:.3}}>{c as string}</Typography>
+        </Box>
+       )}
+      </Stack>
+     </CardContent>
+    </Card>
+   </Box>
+  </>}
+ </Stack>
 }
 
 const money=(n:any)=>`₹${Number(n||0).toLocaleString('en-IN',{maximumFractionDigits:2})}`;
@@ -31,13 +90,68 @@ const money=(n:any)=>`₹${Number(n||0).toLocaleString('en-IN',{maximumFractionD
 export function LiveStudentsPage(){
  const {rows,loading,error,load}=useList('/students/operational'); const [q,setQ]=useState(''); const [open,setOpen]=useState(false);const [edit,setEdit]=useState<any>(null); const [enroll,setEnroll]=useState<any>(null);
  const filtered=useMemo(()=>rows.filter(r=>JSON.stringify(r).toLowerCase().includes(q.toLowerCase())),[rows,q]);
- return <Stack spacing={2.5}><Stack direction={{xs:'column',sm:'row'}} gap={1.5}><TextField size="small" fullWidth placeholder="Search name, admission number, phone…" value={q} onChange={e=>setQ(e.target.value)} slotProps={{input:{startAdornment:<InputAdornment position="start"><SearchRounded fontSize="small"/></InputAdornment>}}}/><Button variant="outlined" startIcon={<RefreshRounded/>} onClick={load}>Refresh</Button><Button variant="contained" startIcon={<AddRounded/>} onClick={()=>{setEdit(null);setOpen(true)}}>Add student</Button></Stack><Card elevation={0} sx={{border:'1px solid #e5e7eb'}}><CardContent sx={{p:0,overflow:'auto'}}><Busy loading={loading} error={error}/>{!loading&&!error&&<Table><TableHead><TableRow>{['Admission','Student','Class / Batch','Phone','Email','Status',''].map(x=><TableCell key={x} sx={{fontWeight:900,fontSize:11}}>{x}</TableCell>)}</TableRow></TableHead><TableBody>{filtered.map(r=><TableRow hover key={r.id}><TableCell>{r.admissionNumber}</TableCell><TableCell><Typography sx={{fontWeight:800}}>{r.firstName} {r.lastName||''}</Typography></TableCell><TableCell>{r.className?`${r.className} • ${r.batchName||'No batch'}`:'Not enrolled'}</TableCell><TableCell>{r.phone||'—'}</TableCell><TableCell>{r.email||'—'}</TableCell><TableCell><Chip size="small" label={r.status} color={r.status==='ACTIVE'?'success':'default'} variant="outlined"/></TableCell><TableCell align="right"><Button size="small" onClick={()=>setEnroll(r)}>Enroll</Button><IconButton onClick={()=>{setEdit(r);setOpen(true)}}><EditRounded fontSize="small"/></IconButton><IconButton color="error" onClick={async()=>{if(confirm('Archive this student?')){await api.delete(`/students/${r.id}`);load()}}}><DeleteOutlineRounded fontSize="small"/></IconButton></TableCell></TableRow>)}{!filtered.length&&<TableRow><TableCell colSpan={7}><Typography sx={{py:5,textAlign:'center',color:'text.secondary'}}>No students found.</Typography></TableCell></TableRow>}</TableBody></Table>}</CardContent></Card><StudentDialog open={open} initial={edit} onClose={()=>setOpen(false)} onSaved={()=>{setOpen(false);load()}}/><EnrollmentDialog open={!!enroll} student={enroll} onClose={()=>setEnroll(null)} onSaved={()=>{setEnroll(null);load()}}/></Stack>
+ return <Stack spacing={2.5}><Stack direction={{xs:'column',sm:'row'}} gap={1.5}><TextField size="small" fullWidth placeholder="Search name, admission number, phone…" value={q} onChange={e=>setQ(e.target.value)} slotProps={{input:{startAdornment:<InputAdornment position="start"><SearchRounded fontSize="small"/></InputAdornment>}}}/><Button variant="outlined" startIcon={<RefreshRounded/>} onClick={load}>Refresh</Button><Button variant="contained" startIcon={<AddRounded/>} onClick={()=>{setEdit(null);setOpen(true)}}>Add student</Button></Stack><Card elevation={0} sx={{border:'1px solid #e5e7eb'}}><CardContent sx={{p:0,overflow:'auto'}}><Busy loading={loading} error={error}/>{!loading&&!error&&<Table><TableHead><TableRow>{['Admission','Student','Class / Batch','Phone','Email','Status',''].map(x=><TableCell key={x} sx={{fontWeight:900,fontSize:11}}>{x}</TableCell>)}</TableRow></TableHead><TableBody>{filtered.map(r=>{
+ const admission=r.admissionNumber??r.admission_number??'—';
+ const first=r.firstName??r.first_name??'';
+ const last=r.lastName??r.last_name??'';
+ const className=r.className??r.class_name;
+ const batchName=r.batchName??r.batch_name;
+ const status=r.status??'ACTIVE';
+ return <TableRow hover key={r.id}>
+  <TableCell><Typography sx={{fontWeight:750}}>{admission}</Typography></TableCell>
+  <TableCell><Typography sx={{fontWeight:800}}>{first} {last}</Typography></TableCell>
+  <TableCell>{className?className+' • '+(batchName||'No batch'):'Not enrolled'}</TableCell>
+  <TableCell>{r.phone||'—'}</TableCell>
+  <TableCell>{r.email||'—'}</TableCell>
+  <TableCell><Chip size="small" label={status} color={status==='ACTIVE'?'success':'default'} variant="outlined"/></TableCell>
+  <TableCell align="right">
+   <Button size="small" onClick={()=>setEnroll(r)}>Enroll</Button>
+   <IconButton onClick={()=>{setEdit(r);setOpen(true)}}><EditRounded/></IconButton>
+   <IconButton color="error" onClick={async()=>{if(confirm('Archive this student?')){await api.delete(`/students/${r.id}`);load()}}}><DeleteOutlineRounded/></IconButton>
+  </TableCell>
+ </TableRow>
+})}</TableBody></Table>}</CardContent></Card><StudentDialog open={open} initial={edit} onClose={()=>setOpen(false)} onSaved={()=>{setOpen(false);load()}}/><EnrollmentDialog open={!!enroll} student={enroll} onClose={()=>setEnroll(null)} onSaved={()=>{setEnroll(null);load()}}/></Stack>
 }
 
 function StudentDialog({open,initial,onClose,onSaved}:{open:boolean;initial:any;onClose:()=>void;onSaved:()=>void}){
  const [form,setForm]=useState<any>({admissionNumber:'',firstName:'',lastName:'',phone:'',email:'',dateOfBirth:'',gender:'',address:'',status:'ACTIVE'});const [saving,setSaving]=useState(false);const [error,setError]=useState('');
- useEffect(()=>{setForm(initial?{...initial,dateOfBirth:initial.dateOfBirth||''}:{admissionNumber:'',firstName:'',lastName:'',phone:'',email:'',dateOfBirth:'',gender:'',address:'',status:'ACTIVE'});setError('')},[initial,open]);
- const save=async()=>{setSaving(true);setError('');try{if(initial)await api.put(`/students/${initial.id}`,form);else await api.post('/students',form);onSaved()}catch(e){setError(err(e))}finally{setSaving(false)}};const f=(k:string)=>(e:any)=>setForm((x:any)=>({...x,[k]:e.target.value}));
+ useEffect(()=>{
+  if(initial){
+    setForm({
+      admissionNumber: initial.admissionNumber ?? initial.admission_number ?? '',
+      firstName: initial.firstName ?? initial.first_name ?? '',
+      lastName: initial.lastName ?? initial.last_name ?? '',
+      phone: initial.phone ?? '',
+      email: initial.email ?? '',
+      dateOfBirth: initial.dateOfBirth ?? initial.date_of_birth ?? '',
+      gender: initial.gender ?? '',
+      address: initial.address ?? '',
+      status: initial.status ?? 'ACTIVE'
+    });
+  }else{
+    setForm({admissionNumber:'',firstName:'',lastName:'',phone:'',email:'',dateOfBirth:'',gender:'',address:'',status:'ACTIVE'});
+  }
+  setError('')
+},[initial,open]);
+ const save=async()=>{
+  setSaving(true);setError('');
+  try{
+    const payload={
+      admissionNumber:String(form.admissionNumber??'').trim(),
+      firstName:String(form.firstName??'').trim(),
+      lastName:String(form.lastName??'').trim()||null,
+      phone:String(form.phone??'').trim()||null,
+      email:String(form.email??'').trim()||null,
+      dateOfBirth:form.dateOfBirth||null,
+      gender:String(form.gender??'').trim()||null,
+      address:String(form.address??'').trim()||null,
+      status:form.status||'ACTIVE'
+    };
+    if(!payload.admissionNumber||!payload.firstName){setError('Admission number and first name are required.');return;}
+    if(initial) await api.put(`/students/${initial.id}`,payload); else await api.post('/students',payload);
+    onSaved();
+  }catch(e){setError(err(e))}finally{setSaving(false)}
+};const f=(k:string)=>(e:any)=>setForm((x:any)=>({...x,[k]:e.target.value}));
  return <Dialog open={open} onClose={onClose} fullWidth maxWidth="md"><DialogTitle>{initial?'Edit student':'Add student'}</DialogTitle><DialogContent><Stack spacing={2} mt={1}>{error&&<Alert severity="error">{error}</Alert>}<Box sx={{display:'grid',gridTemplateColumns:{xs:'1fr',sm:'1fr 1fr'},gap:2}}>{[['admissionNumber','Admission number'],['firstName','First name'],['lastName','Last name'],['phone','Phone'],['email','Email'],['dateOfBirth','Date of birth'],['gender','Gender'],['address','Address']].map(([k,l])=><TextField key={k} label={l} value={form[k]||''} onChange={f(k)} type={k==='dateOfBirth'?'date':'text'} slotProps={k==='dateOfBirth'?{inputLabel:{shrink:true}}:undefined}/>)}</Box><Select value={form.status} onChange={f('status')}><MenuItem value="ACTIVE">Active</MenuItem><MenuItem value="INACTIVE">Inactive</MenuItem><MenuItem value="WITHDRAWN">Withdrawn</MenuItem></Select></Stack></DialogContent><DialogActions><Button onClick={onClose}>Cancel</Button><Button variant="contained" onClick={save} disabled={saving}>{saving?'Saving…':'Save student'}</Button></DialogActions></Dialog>
 }
 
@@ -51,24 +165,28 @@ export function LiveStudentProfile({id}:{id:string}){
 }
 
 export function LiveAcademicsPage(){
- const resources=[['Academic years','/academic-years',['name','startDate','endDate','isCurrent']],['Classes','/classes',['name','displayOrder','active']],['Streams','/streams',['name','code','active']],['Subjects','/subjects',['name','code','active']],['Batches','/batches',['name','code','capacity','status']]] as const;
+ const resources=[['Academic years','/academic-years',['name','startDate','endDate','current','status']],['Classes','/classes',['name','displayOrder','active']],['Streams','/streams',['name','code','active']],['Subjects','/subjects',['name','code','active']],['Batches','/batches',['name','code','capacity','status']]] as const;
  const [tab,setTab]=useState(0); const [refresh,setRefresh]=useState(0);
  return <Stack spacing={2.5}><Box sx={{display:'flex',gap:1,overflow:'auto'}}>{resources.map((r,i)=><Button key={r[0]} variant={tab===i?'contained':'outlined'} onClick={()=>setTab(i)}>{r[0]}</Button>)}</Box><AcademicResource key={refresh} title={resources[tab][0]} endpoint={resources[tab][1]} fields={[...resources[tab][2]]} onChanged={()=>setRefresh(x=>x+1)}/></Stack>
 }
 function AcademicResource({title,endpoint,fields,onChanged}:{title:string;endpoint:string;fields:string[];onChanged:()=>void}){
  const {rows,loading,error,load}=useList(endpoint);const [open,setOpen]=useState(false);const [edit,setEdit]=useState<any>(null);
- return <Card elevation={0} sx={{border:'1px solid #e5e7eb'}}><CardContent><Stack direction="row" justifyContent="space-between" mb={2}><Box><Typography fontWeight={900}>{title}</Typography><Typography fontSize={12} color="text.secondary">{rows.length} records in this tenant</Typography></Box><Button variant="contained" startIcon={<AddRounded/>} onClick={()=>{setEdit(null);setOpen(true)}}>Add</Button></Stack><Busy loading={loading} error={error}/>{!loading&&!error&&<Table size="small"><TableHead><TableRow>{fields.map(f=><TableCell key={f} sx={{fontWeight:900,fontSize:11}}>{f}</TableCell>)}<TableCell/></TableRow></TableHead><TableBody>{rows.map(r=><TableRow key={r.id}>{fields.map(f=><TableCell key={f}>{String(r[f]??'—')}</TableCell>)}<TableCell align="right"><IconButton onClick={()=>{setEdit(r);setOpen(true)}}><EditRounded fontSize="small"/></IconButton><IconButton color="error" onClick={async()=>{if(confirm('Delete this record?')){await api.delete(`${endpoint}/${r.id}`);load();onChanged()}}}><DeleteOutlineRounded fontSize="small"/></IconButton></TableCell></TableRow>)}</TableBody></Table>}{endpoint==='/batches'
-        ? <BatchDialog open={open} initial={edit} onClose={()=>setOpen(false)} onSaved={()=>{setOpen(false);load();onChanged()}}/>
-        : <AcademicDialog open={open} initial={edit} endpoint={endpoint} fields={fields} onClose={()=>setOpen(false)} onSaved={()=>{setOpen(false);load();onChanged()}}/>}</CardContent></Card>
+ const labels:any={name:'Name',startDate:'Start date',endDate:'End date',current:'Current',status:'Status',displayOrder:'Display order',active:'Active',code:'Code',capacity:'Capacity'};
+ const value=(r:any,f:string)=>{const v=r[f]??(f==='current'?r.isCurrent:undefined);if(v===null||v===undefined||v==='')return '—';if(typeof v==='boolean')return v?'Yes':'No';return String(v)};
+ return <Card elevation={0} sx={{border:'1px solid #e5e7eb'}}><CardContent sx={{p:0}}>
+  <Stack direction={{xs:'column',sm:'row'}} justifyContent="space-between" alignItems={{sm:'center'}} gap={1} sx={{px:{xs:2,md:2.5},py:2}}><Box><Typography fontWeight={900}>{title}</Typography><Typography fontSize={12} color="text.secondary">{rows.length} records in this tenant</Typography></Box><Button variant="contained" startIcon={<AddRounded/>} onClick={()=>{setEdit(null);setOpen(true)}}>Add</Button></Stack>
+  <Busy loading={loading} error={error}/>{!loading&&!error&&<Box sx={{overflowX:'auto'}}><Table size="small"><TableHead><TableRow>{fields.map(f=><TableCell key={f} sx={{fontWeight:900,fontSize:11}}>{labels[f]||f}</TableCell>)}<TableCell align="right">Actions</TableCell></TableRow></TableHead>
+  <TableBody>{rows.map(r=><TableRow hover key={r.id}>{fields.map(f=><TableCell key={f}>{value(r,f)}</TableCell>)}<TableCell align="right"><IconButton aria-label="Edit" onClick={()=>{setEdit(r);setOpen(true)}}><EditRounded fontSize="small"/></IconButton><IconButton aria-label="Delete" color="error" onClick={async()=>{if(confirm('Delete this record?')){try{await api.delete(endpoint+'/'+r.id);load();onChanged()}catch(e){alert(err(e))}}}}><DeleteOutlineRounded fontSize="small"/></IconButton></TableCell></TableRow>)}{!rows.length&&<TableRow><TableCell colSpan={fields.length+1}><Typography sx={{py:5,textAlign:'center',color:'text.secondary'}}>No records found. Click Add to create one.</Typography></TableCell></TableRow>}</TableBody></Table></Box>}
+  {endpoint==='/batches'?<BatchDialog open={open} initial={edit} onClose={()=>setOpen(false)} onSaved={()=>{setOpen(false);load();onChanged()}}/>:<AcademicDialog open={open} initial={edit} endpoint={endpoint} fields={fields} onClose={()=>setOpen(false)} onSaved={()=>{setOpen(false);load();onChanged()}}/>}
+ </CardContent></Card>
 }
 function AcademicDialog({open,initial,endpoint,fields,onClose,onSaved}:{open:boolean;initial:any;endpoint:string;fields:string[];onClose:()=>void;onSaved:()=>void}){
- const [form,setForm]=useState<any>({});const [saving,setSaving]=useState(false);const [error,setError]=useState('');
- useEffect(()=>{const x:any={};fields.forEach(f=>x[f]=initial?.[f]??(f==='active'?true:f==='isCurrent'?false:''));setForm(x);setError('')},[initial,open,fields.join(',')]);
- const set=(k:string)=>(e:any)=>setForm((x:any)=>({...x,[k]:e.target.type==='checkbox'?e.target.checked:e.target.value}));
- const save=async()=>{setSaving(true);try{if(initial)await api.put(`${endpoint}/${initial.id}`,form);else await api.post(endpoint,form);onSaved()}catch(e){setError(err(e))}finally{setSaving(false)}};
- return <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm"><DialogTitle>{initial?'Edit':'Add'} record</DialogTitle><DialogContent><Stack spacing={2} mt={1}>{error&&<Alert severity="error">{error}</Alert>}{fields.map(f=>f==='active'||f==='isCurrent'?<Select key={f} value={String(form[f])} onChange={e=>setForm((x:any)=>({...x,[f]:e.target.value==='true'}))}><MenuItem value="true">Active / Current</MenuItem><MenuItem value="false">Inactive / Not current</MenuItem></Select>:<TextField key={f} label={f} value={form[f]??''} onChange={set(f)} type={f.toLowerCase().includes('date')?'date':'text'} slotProps={f.toLowerCase().includes('date')?{inputLabel:{shrink:true}}:undefined}/>)}</Stack></DialogContent><DialogActions><Button onClick={onClose}>Cancel</Button><Button variant="contained" disabled={saving} onClick={save}>{saving?'Saving…':'Save'}</Button></DialogActions></Dialog>
+ const [form,setForm]=useState<any>({});const [saving,setSaving]=useState(false),[error,setError]=useState('');const labels:any={name:'Name',startDate:'Start date',endDate:'End date',current:'Current',status:'Status',displayOrder:'Display order',active:'Active',code:'Code'};
+ useEffect(()=>{const x:any={};fields.forEach(f=>x[f]=initial?.[f]??(f==='current'?(initial?.current??initial?.isCurrent??false):f==='active'?true:f==='status'?'ACTIVE':''));setForm(x);setError('')},[initial,open,fields.join(',')]);
+ const set=(k:string)=>(e:any)=>setForm((x:any)=>({...x,[k]:e.target.value}));
+ const save=async()=>{setSaving(true);setError('');try{const payload={...form};if('displayOrder' in payload)payload.displayOrder=Number(payload.displayOrder||0);if(initial)await api.put(endpoint+'/'+initial.id,payload);else await api.post(endpoint,payload);onSaved()}catch(e){setError(err(e))}finally{setSaving(false)}};
+ return <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm"><DialogTitle>{initial?'Edit':'Add'} {endpoint==='/academic-years'?'academic year':endpoint==='/classes'?'class':endpoint==='/streams'?'stream':'subject'}</DialogTitle><DialogContent><Stack spacing={2} mt={1}>{error&&<Alert severity="error">{error}</Alert>}{fields.map(f=>{if(f==='active'||f==='current')return <FormControl key={f} fullWidth><InputLabel>{labels[f]}</InputLabel><Select label={labels[f]} value={String(form[f])} onChange={e=>setForm((x:any)=>({...x,[f]:e.target.value==='true'}))}><MenuItem value="true">{f==='current'?'Current':'Active'}</MenuItem><MenuItem value="false">{f==='current'?'Not current':'Inactive'}</MenuItem></Select></FormControl>;if(f==='status')return <FormControl key={f} fullWidth><InputLabel>Status</InputLabel><Select label="Status" value={form[f]||'ACTIVE'} onChange={set(f)}><MenuItem value="ACTIVE">ACTIVE</MenuItem><MenuItem value="ARCHIVED">ARCHIVED</MenuItem></Select></FormControl>;const type=f==='startDate'||f==='endDate'?'date':f==='displayOrder'?'number':'text';return <TextField key={f} label={labels[f]||f} value={form[f]??''} onChange={set(f)} type={type} slotProps={type==='date'?{inputLabel:{shrink:true}}:undefined}/>})}</Stack></DialogContent><DialogActions><Button onClick={onClose}>Cancel</Button><Button variant="contained" disabled={saving} onClick={save}>{saving?'Saving…':'Save'}</Button></DialogActions></Dialog>
 }
-
 function BatchDialog({open,initial,onClose,onSaved}:{open:boolean;initial:any;onClose:()=>void;onSaved:()=>void}){
  const {rows:years}=useList('/academic-years');
  const {rows:classes}=useList('/classes');

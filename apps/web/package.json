@@ -9,25 +9,25 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@emotion/react": "latest",
-    "@emotion/styled": "latest",
-    "@hookform/resolvers": "latest",
-    "@mui/icons-material": "latest",
-    "@mui/material": "latest",
-    "@tanstack/react-query": "latest",
-    "axios": "latest",
-    "react": "latest",
-    "react-dom": "latest",
-    "react-hook-form": "latest",
-    "react-router-dom": "latest",
-    "zod": "latest",
-    "zustand": "latest"
+    "@emotion/react": "11.14.0",
+    "@emotion/styled": "11.14.0",
+    "@hookform/resolvers": "5.1.1",
+    "@mui/icons-material": "6.4.12",
+    "@mui/material": "6.4.12",
+    "@tanstack/react-query": "5.90.2",
+    "axios": "1.12.2",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "react-hook-form": "7.62.0",
+    "react-router-dom": "7.9.3",
+    "zod": "4.1.12",
+    "zustand": "5.0.8"
   },
   "devDependencies": {
-    "@types/react": "latest",
-    "@types/react-dom": "latest",
-    "@vitejs/plugin-react": "latest",
-    "typescript": "latest",
-    "vite": "latest"
+    "@types/react": "18.3.12",
+    "@types/react-dom": "18.3.1",
+    "@vitejs/plugin-react": "5.0.4",
+    "typescript": "5.9.3",
+    "vite": "7.1.9"
   }
 }
