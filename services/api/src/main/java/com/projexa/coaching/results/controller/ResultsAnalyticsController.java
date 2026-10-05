@@ -120,7 +120,12 @@ public class ResultsAnalyticsController {
   @Transactional
   @PreAuthorize("hasAuthority('results.manage') or hasRole('INSTITUTE_OWNER')")
   public Map<String,Object> publish(@PathVariable UUID examId){
-    UUID t=TenantContextHolder.getRequired(); exam(t,examId);
+    UUID t=TenantContextHolder.getRequired();
+    Map<String,Object> examRow=db.queryForMap("select status,ends_at from exams where id=? and tenant_id=? for update",examId,t);
+    String examStatus=String.valueOf(examRow.get("status"));
+    if(!Set.of("SCHEDULED","LIVE").contains(examStatus)) throw new IllegalArgumentException("Results can only be published for an open or live exam");
+    Object endsAt=examRow.get("ends_at");
+    if(endsAt instanceof java.sql.Timestamp ts && LocalDateTime.now().isBefore(ts.toLocalDateTime())) throw new IllegalArgumentException("Exam has not ended yet");
     int draft=count("select count(*) from results where tenant_id=? and exam_id=? and status='DRAFT'",t,examId);
     if(draft==0) throw new IllegalArgumentException("No generated draft results to publish");
     int n=db.update("update results set status='PUBLISHED',published_at=? where tenant_id=? and exam_id=? and status='DRAFT'",LocalDateTime.now(),t,examId);
