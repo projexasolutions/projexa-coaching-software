@@ -1,6 +1,7 @@
 package com.projexa.coaching.tenancy.controller;
 
 import com.projexa.coaching.common.responses.ApiResponse;
+import com.projexa.coaching.common.exceptions.ApiException;
 import com.projexa.coaching.common.tenant.TenantContextHolder;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -46,7 +47,8 @@ public class InstituteSetupController {
         counts.put("classrooms", count("classrooms", t));
         counts.put("students", count("students", t));
 
-        return ApiResponse.ok(Map.of("profile", profile, "counts", counts));
+        Map<String,Object> readiness = readiness(t, profile, counts);
+        return ApiResponse.ok(Map.of("profile", profile, "counts", counts, "readiness", readiness));
     }
 
     @PutMapping("/profile")
@@ -99,6 +101,17 @@ public class InstituteSetupController {
             throw new IllegalArgumentException("Invalid setup status.");
 
         if (status != null && status.equals("GO_LIVE")) {
+            Map<String,Object> profile = db.queryForMap("select tn.name institute_name,tn.slug,p.institute_type from institute_setup_profiles p join tenants tn on tn.id=p.tenant_id where p.tenant_id=?", t);
+            Map<String,Object> counts = new LinkedHashMap<>();
+            counts.put("academicYears", count("academic_years", t));
+            counts.put("classes", count("classes", t));
+            counts.put("subjects", count("subjects", t));
+            counts.put("batches", count("batches", t));
+            counts.put("teachers", count("teachers", t));
+            Map<String,Object> readiness = readiness(t, profile, counts);
+            if (!Boolean.TRUE.equals(readiness.get("ready"))) {
+                throw new ApiException("SETUP_NOT_READY", "Institute setup is not ready for go-live. Complete the required setup items first.");
+            }
             db.update("update institute_setup_profiles set go_live_at=current_timestamp where tenant_id=?", t);
         }
 
@@ -121,6 +134,26 @@ public class InstituteSetupController {
             values(?)
             on conflict (tenant_id) do nothing
         """, t);
+    }
+
+    private Map<String,Object> readiness(UUID tenant, Map<String,Object> profile, Map<String,Object> counts) {
+        List<Map<String,Object>> checks = new ArrayList<>();
+        checks.add(check("Institute profile", profile.get("institute_name") != null && profile.get("slug") != null && profile.get("institute_type") != null, "Name, slug and institute type are configured."));
+        checks.add(check("Academic year", number(counts.get("academicYears")) > 0, "At least one academic year is required."));
+        checks.add(check("Classes", number(counts.get("classes")) > 0, "At least one class is required."));
+        checks.add(check("Subjects", number(counts.get("subjects")) > 0, "At least one subject is required."));
+        checks.add(check("Batches", number(counts.get("batches")) > 0, "At least one batch is required."));
+        checks.add(check("Faculty", number(counts.get("teachers")) > 0, "At least one faculty member is required."));
+        boolean ready = checks.stream().allMatch(x -> Boolean.TRUE.equals(x.get("ready")));
+        return Map.of("ready", ready, "checks", checks);
+    }
+
+    private Map<String,Object> check(String name, boolean ready, String detail) {
+        return Map.of("name", name, "ready", ready, "detail", detail);
+    }
+
+    private int number(Object value) {
+        return value instanceof Number n ? n.intValue() : 0;
     }
 
     private int count(String table, UUID tenant) {
