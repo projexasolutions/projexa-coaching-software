@@ -85,6 +85,7 @@ public class ResultsAnalyticsController {
     double previous=Double.NaN; int rank=0;
     for(int i=0;i<attempts.size();i++){
       double score=number(attempts.get(i).get("score"));
+      if(score<0 || score>max) throw new IllegalArgumentException("Attempt score is outside the exam maximum marks");
       if(Double.isNaN(previous)||Double.compare(score,previous)!=0) rank=i+1;
       previous=score;
       UUID student=(UUID)attempts.get(i).get("student_id");
@@ -106,7 +107,10 @@ public class ResultsAnalyticsController {
       for(Map<String,Object> sm:subjectMarks){
         UUID subjectId=(UUID)sm.get("subject_id");
         Double subjectMax=db.queryForObject("select max_marks from exam_subjects where tenant_id=? and exam_id=? and subject_id=?",Double.class,t,examId,subjectId);
-        db.update("insert into result_subjects(id,result_id,subject_id,max_marks,obtained_marks) values(?,?,?,?,?)",UUID.randomUUID(),rid,subjectId,subjectMax,number(sm.get("obtained")));
+        double subjectObtained=number(sm.get("obtained"));
+        if(subjectMax==null) throw new IllegalArgumentException("Result contains a subject not configured for this exam");
+        if(subjectObtained<0 || subjectObtained>subjectMax) throw new IllegalArgumentException("Subject result exceeds maximum marks");
+        db.update("insert into result_subjects(id,result_id,subject_id,max_marks,obtained_marks) values(?,?,?,?,?)",UUID.randomUUID(),rid,subjectId,subjectMax,subjectObtained);
       }
     }
     return Map.of("examId",examId,"generated",attempts.size(),"maxMarks",max);
