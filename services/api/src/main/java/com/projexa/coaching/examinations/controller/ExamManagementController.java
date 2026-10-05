@@ -47,7 +47,12 @@ public class ExamManagementController {
   @PreAuthorize("hasAuthority('exams.manage')")
   public Map<String,Object> update(@PathVariable UUID id,@RequestBody ExamRequest r){
     UUID t=TenantContextHolder.getRequired(); Map<String,Object> current=exam(t,id); validate(r); requireYear(t,r.academicYearId()); validateWindow(r.startsAt(),r.endsAt());
-    String nextStatus=normalizeStatus(r.status()); ensureTransition(String.valueOf(current.get("status")),nextStatus);
+    String currentStatus=String.valueOf(current.get("status")); String nextStatus=normalizeStatus(r.status());
+    if(currentStatus.equals(nextStatus)){
+      if(!Set.of("DRAFT","SCHEDULED").contains(currentStatus)) throw new IllegalArgumentException("Exam metadata cannot be changed after the exam is LIVE, COMPLETED, or ARCHIVED");
+    } else {
+      ensureTransition(currentStatus,nextStatus);
+    }
     db.update("update exams set academic_year_id=?,name=?,exam_type=?,starts_at=?,ends_at=?,status=? where id=? and tenant_id=?",
       r.academicYearId(),r.name().trim(),r.examType().trim().toUpperCase(),r.startsAt(),r.endsAt(),nextStatus,id,t);
     return exam(t,id);
@@ -110,7 +115,7 @@ public class ExamManagementController {
       try{row=db.queryForMap("select id,subject_id,question_type from questions where id=? and tenant_id=? and active=true",q,t);}catch(Exception e){throw new IllegalArgumentException("Question is invalid for this institute: "+q);}
       UUID subject=(UUID)row.get("subject_id");
       String questionType=String.valueOf(row.get("question_type"));
-      if(!Set.of("MCQ_SINGLE","MCQ_MULTI","TRUE_FALSE","FILL_BLANK","MATCH").contains(questionType)) throw new IllegalArgumentException("Question type is not yet supported by the live exam grader: "+questionType);
+      if(!Set.of("MCQ_SINGLE","MCQ_MULTI","TRUE_FALSE","FILL_BLANK").contains(questionType)) throw new IllegalArgumentException("Question type is not yet supported by the live exam grader: "+questionType);
       if(subject==null||count("select count(*) from exam_subjects where tenant_id=? and exam_id=? and subject_id=?",t,id,subject)==0) throw new IllegalArgumentException("Question subject is not configured for this exam");
       db.update("insert into exam_questions(id,tenant_id,exam_id,question_id,subject_id,display_order) values(?,?,?,?,?,?)",UUID.randomUUID(),t,id,q,subject,order++);
     }
