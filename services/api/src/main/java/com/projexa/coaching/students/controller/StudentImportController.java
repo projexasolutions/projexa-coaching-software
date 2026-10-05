@@ -26,7 +26,7 @@ public class StudentImportController {
     }
 
     @PostMapping("/preview")
-    @PreAuthorize("hasAuthority('students.create') or hasAuthority('settings.manage')")
+    @PreAuthorize("hasAuthority('students.import') or hasAuthority('settings.manage')")
     public Map<String,Object> preview(@RequestParam("file") MultipartFile file,
                                       @RequestParam(value="mapping", required=false) String mappingJson) {
         return process(file, mappingJson, false);
@@ -41,6 +41,7 @@ public class StudentImportController {
 
     private Map<String,Object> process(MultipartFile file, String mappingJson, boolean commit) {
         if (file == null || file.isEmpty()) throw new ApiException("VALIDATION_ERROR", "CSV file is required");
+        if (file.getSize() > 5 * 1024 * 1024) throw new ApiException("FILE_TOO_LARGE", "Student import CSV must be 5 MB or smaller");
         String name = Optional.ofNullable(file.getOriginalFilename()).orElse("students.csv");
         if (!name.toLowerCase(Locale.ROOT).endsWith(".csv")) {
             throw new ApiException("UNSUPPORTED_FILE", "Student import currently supports CSV files.");
@@ -52,8 +53,14 @@ public class StudentImportController {
         if (rows.isEmpty()) throw new ApiException("VALIDATION_ERROR", "CSV is empty");
 
         List<String> headers = rows.get(0).stream().map(this::normalizeHeader).toList();
+        if (headers.stream().anyMatch(String::isBlank)) throw new ApiException("VALIDATION_ERROR", "CSV contains an empty header");
+        if (new HashSet<>(headers).size() != headers.size()) throw new ApiException("VALIDATION_ERROR", "CSV contains duplicate column headers");
+        if (!headers.contains(normalizeHeader("admissionNumber")) || !headers.contains(normalizeHeader("firstName"))) {
+            throw new ApiException("VALIDATION_ERROR", "CSV must contain admissionNumber and firstName columns");
+        }
         List<Map<String,Object>> errors = new ArrayList<>();
         List<Map<String,String>> valid = new ArrayList<>();
+        Set<String> seenAdmissions = new HashSet<>();
 
         for (int i = 1; i < rows.size(); i++) {
             List<String> row = rows.get(i);
@@ -64,8 +71,14 @@ public class StudentImportController {
             }
             Map<String,String> canonical = canonicalize(data, mapping);
             List<String> rowErrors = validate(canonical, tenant);
+            String admission = nullable(canonical.get("admissionNumber"));
+            if (admission != null && !seenAdmissions.add(admission)) rowErrors.add("Duplicate admission number in this CSV");
             if (rowErrors.isEmpty()) valid.add(canonical);
             else errors.add(Map.of("row", i + 1, "errors", rowErrors));
+        }
+
+        if (commit && !errors.isEmpty()) {
+            throw new ApiException("IMPORT_VALIDATION_FAILED", "Resolve all import validation errors before committing the file");
         }
 
         int imported = 0;
@@ -108,7 +121,7 @@ public class StudentImportController {
                 nullable(s.get("address")));
             return true;
         } catch (org.springframework.dao.DuplicateKeyException e) {
-            return false;
+            throw new ApiException("IMPORT_CONFLICT", "A student with this admission number was created while the import was being processed");
         }
     }
 
