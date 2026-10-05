@@ -1,7 +1,7 @@
 package com.projexa.coaching.finance.controller;
 
 import com.projexa.coaching.common.tenant.TenantContextHolder;
-import com.projexa.coaching.common.error.ApiException;
+import com.projexa.coaching.common.exceptions.ApiException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
