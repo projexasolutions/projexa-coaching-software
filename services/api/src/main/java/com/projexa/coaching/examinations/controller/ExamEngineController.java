@@ -25,6 +25,7 @@ public class ExamEngineController {
     Map<String,Object> exam=exam(examId,tenant);
     if(!Set.of("SCHEDULED","LIVE").contains(String.valueOf(exam.get("status")))) throw new IllegalArgumentException("Exam is not open for attempts");
     if(count("select count(*) from enrollments where tenant_id=? and student_id=? and status='ACTIVE'",tenant,req.studentId())==0) throw new IllegalArgumentException("Student is not actively enrolled");
+    if(count("select count(*) from exam_attempts where tenant_id=? and exam_id=? and student_id=? and status='SUBMITTED'",tenant,examId,req.studentId())>0) throw new IllegalArgumentException("Student has already submitted this exam");
     LocalDateTime now=LocalDateTime.now();
     if(exam.get("starts_at")!=null && now.isBefore(timestamp(exam.get("starts_at")))) throw new IllegalArgumentException("Exam has not started");
     if(exam.get("ends_at")!=null && now.isAfter(timestamp(exam.get("ends_at")))) throw new IllegalArgumentException("Exam has ended");
