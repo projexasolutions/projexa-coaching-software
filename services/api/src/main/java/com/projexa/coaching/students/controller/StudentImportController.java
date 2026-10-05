@@ -7,6 +7,7 @@ import com.projexa.coaching.common.tenant.TenantContextHolder;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.nio.charset.StandardCharsets;
@@ -33,7 +34,8 @@ public class StudentImportController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAuthority('students.create') or hasAuthority('settings.manage')")
+    @PreAuthorize("hasAuthority('students.import') or hasAuthority('settings.manage')")
+    @Transactional
     public Map<String,Object> importStudents(@RequestParam("file") MultipartFile file,
                                              @RequestParam(value="mapping", required=false) String mappingJson) {
         return process(file, mappingJson, true);
