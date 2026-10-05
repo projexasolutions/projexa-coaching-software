@@ -155,7 +155,40 @@ function StudentDialog({open,initial,onClose,onSaved}:{open:boolean;initial:any;
  return <Dialog open={open} onClose={onClose} fullWidth maxWidth="md"><DialogTitle>{initial?'Edit student':'Add student'}</DialogTitle><DialogContent><Stack spacing={2} mt={1}>{error&&<Alert severity="error">{error}</Alert>}<Box sx={{display:'grid',gridTemplateColumns:{xs:'1fr',sm:'1fr 1fr'},gap:2}}>{[['admissionNumber','Admission number'],['firstName','First name'],['lastName','Last name'],['phone','Phone'],['email','Email'],['dateOfBirth','Date of birth'],['gender','Gender'],['address','Address']].map(([k,l])=><TextField key={k} label={l} value={form[k]||''} onChange={f(k)} type={k==='dateOfBirth'?'date':'text'} slotProps={k==='dateOfBirth'?{inputLabel:{shrink:true}}:undefined}/>)}</Box><Select value={form.status} onChange={f('status')}><MenuItem value="ACTIVE">Active</MenuItem><MenuItem value="INACTIVE">Inactive</MenuItem><MenuItem value="WITHDRAWN">Withdrawn</MenuItem></Select></Stack></DialogContent><DialogActions><Button onClick={onClose}>Cancel</Button><Button variant="contained" onClick={save} disabled={saving}>{saving?'Saving…':'Save student'}</Button></DialogActions></Dialog>
 }
 
-function EnrollmentDialog({open,student,onClose,onSaved}:{open:boolean;student:any;onClose:()=>void;onSaved:()=>void}){const {rows:years}=useList('/academic-years');const {rows:classes}=useList('/classes');const {rows:streams}=useList('/streams');const {rows:batches}=useList('/batches');const [f,setF]=useState<any>({academicYearId:'',classId:'',streamId:'',batchId:''});const [error,setError]=useState('');useEffect(()=>{setF({academicYearId:years.find((x:any)=>x.isCurrent)?.id||years[0]?.id||'',classId:student?.classId||'',streamId:student?.streamId||'',batchId:student?.batchId||''})},[open,student,years]);const save=async()=>{setError('');if(!f.academicYearId||!f.classId||!f.batchId){setError('Academic year, class and batch are required.');return;}try{await api.post(`/students/${student.id}/enrollment`,{...f,streamId:f.streamId||null});onSaved()}catch(e){setError(err(e))}};return <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm"><DialogTitle>Assign academic enrollment</DialogTitle><DialogContent><Stack spacing={2} mt={1}>{error&&<Alert severity="error">{error}</Alert>}<Select value={f.academicYearId} displayEmpty onChange={e=>setF((x:any)=>({...x,academicYearId:e.target.value}))}>{years.map((x:any)=><MenuItem key={x.id} value={x.id}>{x.name}</MenuItem>)}</Select><Select value={f.classId} displayEmpty onChange={e=>setF((x:any)=>({...x,classId:e.target.value}))}><MenuItem value="">Select class</MenuItem>{classes.map((x:any)=><MenuItem key={x.id} value={x.id}>{x.name}</MenuItem>)}</Select><Select value={f.streamId} displayEmpty onChange={e=>setF((x:any)=>({...x,streamId:e.target.value}))}><MenuItem value="">No stream</MenuItem>{streams.map((x:any)=><MenuItem key={x.id} value={x.id}>{x.name}</MenuItem>)}</Select><Select value={f.batchId} displayEmpty onChange={e=>setF((x:any)=>({...x,batchId:e.target.value}))}><MenuItem value="">Select batch</MenuItem>{batches.map((x:any)=><MenuItem key={x.id} value={x.id}>{x.name}</MenuItem>)}</Select></Stack></DialogContent><DialogActions><Button onClick={onClose}>Cancel</Button><Button variant="contained" onClick={save}>Save enrollment</Button></DialogActions></Dialog>}
+function EnrollmentDialog({open,student,onClose,onSaved}:{open:boolean;student:any;onClose:()=>void;onSaved:()=>void}){
+ const {rows:years}=useList('/academic-years');
+ const {rows:classes}=useList('/classes');
+ const {rows:streams}=useList('/streams');
+ const {rows:batches}=useList('/batches');
+ const {rows:programs}=useList('/programs');
+ const [f,setF]=useState<any>({academicYearId:'',classId:'',streamId:'',batchId:'',programId:''});
+ const [error,setError]=useState('');
+ useEffect(()=>{
+   setF({
+     academicYearId:student?.academicYearId||years.find((x:any)=>x.isCurrent)?.id||years[0]?.id||'',
+     classId:student?.classId||'',
+     streamId:student?.streamId||'',
+     batchId:student?.batchId||'',
+     programId:student?.programId||''
+   });
+   setError('');
+ },[open,student,years]);
+ const save=async()=>{
+   setError('');
+   if(!f.academicYearId||!f.classId||!f.batchId){setError('Academic year, class and batch are required.');return;}
+   try{
+     await api.post(`/students/${student.id}/enrollment`,{...f,streamId:f.streamId||null,programId:f.programId||null});
+     onSaved();
+   }catch(e){setError(err(e))}
+ };
+ return <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm"><DialogTitle>Assign academic enrollment</DialogTitle><DialogContent><Stack spacing={2} mt={1}>
+   {error&&<Alert severity="error">{error}</Alert>}
+   <Select value={f.academicYearId} displayEmpty onChange={e=>setF((x:any)=>({...x,academicYearId:e.target.value}))}>{years.map((x:any)=><MenuItem key={x.id} value={x.id}>{x.name}</MenuItem>)}</Select>
+   <Select value={f.classId} displayEmpty onChange={e=>setF((x:any)=>({...x,classId:e.target.value}))}><MenuItem value="">Select class</MenuItem>{classes.map((x:any)=><MenuItem key={x.id} value={x.id}>{x.name}</MenuItem>)}</Select>
+   <Select value={f.streamId} displayEmpty onChange={e=>setF((x:any)=>({...x,streamId:e.target.value}))}><MenuItem value="">No stream</MenuItem>{streams.map((x:any)=><MenuItem key={x.id} value={x.id}>{x.name}</MenuItem>)}</Select>
+   <Select value={f.programId} displayEmpty onChange={e=>setF((x:any)=>({...x,programId:e.target.value}))}><MenuItem value="">Use batch program</MenuItem>{programs.map((x:any)=><MenuItem key={x.id} value={x.id}>{x.name}</MenuItem>)}</Select>
+   <Select value={f.batchId} displayEmpty onChange={e=>setF((x:any)=>({...x,batchId:e.target.value}))}><MenuItem value="">Select batch</MenuItem>{batches.map((x:any)=><MenuItem key={x.id} value={x.id}>{x.name}</MenuItem>)}</Select>
+ </Stack></DialogContent><DialogActions><Button onClick={onClose}>Cancel</Button><Button variant="contained" onClick={save}>Save enrollment</Button></DialogActions></Dialog>}
 
 function StudentImportDialog({open,onClose,onImported}:{open:boolean;onClose:()=>void;onImported:()=>void}){
  const input=useRef<HTMLInputElement|null>(null); const [file,setFile]=useState<File|null>(null); const [result,setResult]=useState<any>(null); const [busy,setBusy]=useState(false); const [error,setError]=useState('');
