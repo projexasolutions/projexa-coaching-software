@@ -35,6 +35,8 @@ public class AutomationExecutionService {
        List<Map<String,Object>> actions=db.queryForList("select action_type,action_config from automation_actions where rule_id=? order by action_order",ruleId);
        for(Map<String,Object> a:actions)perform(tenant,String.valueOf(a.get("action_type")),a.get("action_config"),payload);
        db.update("update automation_runs set status='SUCCESS',completed_at=now() where id=?",run);
+     }catch(org.springframework.dao.DuplicateKeyException duplicate){
+       continue;
      }catch(Exception ex){db.update("update automation_runs set status='FAILED',error_message=?,completed_at=now() where id=?",ex.getMessage(),run);}
    }
  }
