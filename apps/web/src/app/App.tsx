@@ -71,6 +71,7 @@ const navGroups:any[] = [
 function Shell({children}:{children:ReactNode}){
  const session=useAuth(s=>s.session),logout=useAuth(s=>s.logout);
  const [mobile,setMobile]=useState(false),[anchor,setAnchor]=useState<HTMLElement|null>(null);
+ const visibleNavGroups=navGroups.map(group=>({...group,items:group.items.filter((item:any)=>!String(item[0]).startsWith('/admin/')||session?.roles?.includes('PLATFORM_ADMIN'))})).filter(group=>group.items.length);
 
  const side=<Box sx={{height:'100%',display:'flex',flexDirection:'column',bgcolor:'#fff'}}>
   <Toolbar sx={{minHeight:'68px !important',px:2.25}}>
@@ -143,6 +144,7 @@ function Page({title,subtitle,children}:{title:string;subtitle:string;children:R
 }
 
 function Guard({children}:{children:ReactNode}){return useAuth(s=>s.session)?children:<Navigate to="/login" replace/>}
+function PlatformGuard({children}:{children:ReactNode}){const session=useAuth(s=>s.session);return session?.roles?.includes('PLATFORM_ADMIN')?children:<Navigate to="/owner" replace/>}
 function Profile(){const {id}=useParams();return <LiveStudentProfile id={id||''}/>}
 
 function Placeholder({title}:{title:string}){return <Box sx={{p:5,textAlign:'center',bgcolor:'#fff',border:'1px solid #e5e7eb',borderRadius:3}}><Typography sx={{fontSize:22,fontWeight:900}}>{title}</Typography><Typography sx={{color:'#64748b',mt:1}}>This module is scheduled for the next implementation stage. Phase 1 operational modules are live.</Typography><Chip label="Phase 1 in progress" sx={{mt:2}}/></Box>}
@@ -168,8 +170,8 @@ export default function App(){return <BrowserRouter><Routes>
  <Route path="/owner/support" element={<Guard><Shell><Page title="Support" subtitle="Track institute support requests and operational issues."><SupportPage/></Page></Shell></Guard>}/>
  <Route path="/owner/settings" element={<Guard><Shell><Page title="Settings" subtitle="Configure institute-level operational policies."><SettingsPage/></Page></Shell></Guard>}/>
  <Route path="/owner/setup" element={<Guard><Shell><Page title="Institute Setup Center" subtitle="Configure the institute structure, onboarding progress and go-live readiness."><InstituteSetupPage/></Page></Shell></Guard>}/>
- <Route path="/admin/institutes" element={<Guard><Shell><Page title="Platform Institutes" subtitle="Manage Projexa customer institutes and onboarding readiness."><PlatformInstitutesPage/></Page></Shell></Guard>}/>
- <Route path="/admin/institutes/:id" element={<Guard><Shell><Page title="Institute Setup" subtitle="Configure a customer institute before go-live."><PlatformInstituteSetupPage/></Page></Shell></Guard>}/>
+ <Route path="/admin/institutes" element={<PlatformGuard><Shell><Page title="Platform Institutes" subtitle="Manage Projexa customer institutes and onboarding readiness."><PlatformInstitutesPage/></Page></Shell></Guard>}/>
+ <Route path="/admin/institutes/:id" element={<PlatformGuard><Shell><Page title="Institute Setup" subtitle="Configure a customer institute before go-live."><PlatformInstituteSetupPage/></Page></Shell></Guard>}/>
  <Route path="/owner/automation" element={<Guard><Shell><Page title="Automation Center" subtitle="Create controlled event-driven workflows for repetitive operations."><AutomationPage/></Page></Shell></Guard>}/>
  <Route path="/owner/notifications" element={<Guard><Shell><Page title="Notifications" subtitle="System alerts and workflow notifications."><NotificationsPage/></Page></Shell></Guard>}/>
  <Route path="/owner/questions" element={<Guard><Shell><Page title="Question Bank" subtitle="Build reusable objective questions for the universal exam engine."><QuestionBankPage/></Page></Shell></Guard>}/>
