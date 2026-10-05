@@ -19,9 +19,9 @@ public class ProgramConfigurationController {
     public ApiResponse<List<Map<String,Object>>> list(){
         UUID t=TenantContextHolder.getRequired();
         return ApiResponse.ok(db.queryForList("""
-          select p.id,p.name,p.code,p.category,p.level,p.description,p.active,p.program_id
+          select p.id,p.name,p.code,p.category,p.level,p.description,p.active
           from programs p where p.tenant_id=? order by p.active desc,p.name
-        """.replace(",p.program_id",""),t));
+        """,t));
     }
 
     @PostMapping
