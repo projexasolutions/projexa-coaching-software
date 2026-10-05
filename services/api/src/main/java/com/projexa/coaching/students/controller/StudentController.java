@@ -174,7 +174,7 @@ public class StudentController {
         int capacity = batch.get("capacity") == null ? 0 : ((Number) batch.get("capacity")).intValue();
         if (capacity > 0) {
             int existing = count("""
-                    select count(*) from enrollments
+                    select count(distinct student_id) from enrollments
                     where tenant_id=? and batch_id=? and status='ACTIVE' and student_id<>?
                     """, tenantId, req.batchId(), id);
             if (existing >= capacity) {
