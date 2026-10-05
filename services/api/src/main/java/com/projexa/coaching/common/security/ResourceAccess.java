@@ -27,7 +27,7 @@ public class ResourceAccess {
       return db.queryForObject("select count(*) from student_parents sp join parents p on p.id=sp.parent_id where sp.student_id=? and p.tenant_id=? and p.user_id=?", Integer.class, studentId, tenantId, userId) > 0;
     }
     if (auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_TEACHER"))) {
-      return db.queryForObject("select count(*) from enrollments e join teacher_batch_assignments tba on tba.batch_id=e.batch_id join teachers t on t.id=tba.teacher_id where e.student_id=? and e.tenant_id=? and t.user_id=? and e.status='ACTIVE'", Integer.class, studentId, tenantId, userId) > 0;
+      return db.queryForObject("select count(*) from enrollments e join teacher_batch_assignments tba on tba.batch_id=e.batch_id join teachers t on t.id=tba.teacher_id where e.student_id=? and e.tenant_id=? and t.user_id=? and t.status='ACTIVE' and e.status='ACTIVE'", Integer.class, studentId, tenantId, userId) > 0;
     }
     return false;
   }
