@@ -80,6 +80,12 @@ export default function InstituteSetupPage(){
  async function next(){
   try{
    setBusy(true);setError('');
+   if(active===0){
+    const name=String(form.instituteName||'').trim();
+    const slug=String(form.slug||'').trim();
+    if(!name||!slug) throw new Error('Institute name and slug are required.');
+    await api.put('/institute-setup/profile',form);
+   }
    const nextIndex=Math.min(active+1,steps.length-1);
    const step=steps[nextIndex][0];
    await saveProgress(current,undefined);
@@ -192,7 +198,7 @@ export default function InstituteSetupPage(){
     </Stack>
     {active===8&&<Stack direction={{xs:'column',sm:'row'}} spacing={1.25} sx={{mt:3}}>
       <Button variant="outlined" onClick={ready} disabled={busy||status==='GO_LIVE'}>Mark ready for review</Button>
-      <Button variant="contained" color="success" startIcon={<PlayArrowRounded/>} onClick={goLive} disabled={busy||status==='GO_LIVE'}>Go Live</Button>
+      <Button variant="contained" color="success" startIcon={<PlayArrowRounded/>} onClick={goLive} disabled={busy||status!=='READY_FOR_REVIEW'||status==='GO_LIVE'}>Go Live</Button>
     </Stack>}
    </CardContent>
   </Card>}
