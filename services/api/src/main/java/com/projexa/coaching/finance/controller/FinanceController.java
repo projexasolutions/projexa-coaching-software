@@ -85,6 +85,21 @@ public class FinanceController {
   }
   }
 
+  @GetMapping("/payments/pending")
+  @PreAuthorize("hasAuthority('finance.manage') or hasAnyRole('INSTITUTE_OWNER','INSTITUTE_ADMIN')")
+  public List<Map<String,Object>> pendingPayments(){
+    UUID t=TenantContextHolder.getRequired();
+    return db.queryForList("""
+      select p.id,p.invoice_id,p.amount,p.gateway,p.status,p.created_at,
+             i.invoice_number,s.id student_id,s.first_name,s.last_name,s.admission_number
+      from payments p
+      join invoices i on i.id=p.invoice_id and i.tenant_id=p.tenant_id
+      join students s on s.id=i.student_id and s.tenant_id=p.tenant_id
+      where p.tenant_id=? and p.status='PENDING'
+      order by p.created_at asc
+    """,t);
+  }
+
   @GetMapping("/summary")
   @PreAuthorize("hasAnyAuthority('finance.manage','dashboard.read')")
   public Map<String,Object> summary(){
