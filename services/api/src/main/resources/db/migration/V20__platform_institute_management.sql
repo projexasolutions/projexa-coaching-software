@@ -19,6 +19,11 @@ INSERT INTO permissions(code,description) VALUES
 ('platform.institutes.manage','Create and configure platform institutes')
 ON CONFLICT (code) DO NOTHING;
 
+INSERT INTO role_permissions(role_id,permission_id)
+SELECT r.id,p.id FROM roles r CROSS JOIN permissions p
+WHERE r.code='INSTITUTE_OWNER' AND p.code IN ('platform.institutes.read','platform.institutes.manage')
+ON CONFLICT DO NOTHING;
+
 INSERT INTO platform_admins(user_id)
 SELECT u.id FROM users u WHERE u.email='owner@demo.projexa.local'
 ON CONFLICT (user_id) DO NOTHING;
