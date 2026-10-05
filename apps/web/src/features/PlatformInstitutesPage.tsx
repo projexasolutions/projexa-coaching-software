@@ -1,5 +1,5 @@
 import {useEffect,useState} from 'react';
-import {Alert,Button,Card,CardContent,Chip,Dialog,DialogActions,DialogContent,DialogTitle,Grid,Stack,Table,TableBody,TableCell,TableHead,TableRow,TextField,Typography} from '@mui/material';
+import {Alert,Box,Button,Card,CardContent,Chip,Dialog,DialogActions,DialogContent,DialogTitle,Grid,Stack,TextField,Typography} from '@mui/material';
 import {AddRounded,SettingsRounded} from '@mui/icons-material';
 import {api} from '../services';
 
@@ -27,7 +27,7 @@ export default function PlatformInstitutesPage(){
        <Typography sx={{fontSize:12}}><b>{r.programs}</b> programs</Typography><Typography sx={{fontSize:12}}><b>{r.batches}</b> batches</Typography><Typography sx={{fontSize:12}}><b>{r.students}</b> students</Typography>
       </Stack>
       <Stack direction="row" spacing={1} sx={{mt:2}}>
-       <Button size="small" variant="outlined" startIcon={<SettingsRounded/>} href={'/owner/setup?tenant='+r.id}>Open setup</Button>
+       <Button size="small" variant="outlined" startIcon={<SettingsRounded/>} href={'/admin/institutes/'+r.id}>Open setup</Button>
        <Button size="small" onClick={()=>setStatus(r.id,r.status==='ACTIVE'?'SUSPENDED':'ACTIVE')}>{r.status==='ACTIVE'?'Suspend':'Activate'}</Button>
       </Stack>
     </CardContent>
