@@ -111,7 +111,12 @@ public class StudentImportController {
         );
     }
 
-    private UUID authenticatedUserId(Authentication auth) {\n        try { return UUID.fromString(auth.getName()); }\n        catch (Exception e) { throw new ApiException("UNAUTHORIZED", "Authenticated user identity is invalid"); }\n    }\n\n    private boolean insertStudent(UUID tenant, Map<String,String> s) {
+    private UUID authenticatedUserId(Authentication auth) {
+        try { return UUID.fromString(auth.getName()); }
+        catch (Exception e) { throw new ApiException("UNAUTHORIZED", "Authenticated user identity is invalid"); }
+    }
+
+    private boolean insertStudent(UUID tenant, Map<String,String> s) {
         UUID id = UUID.randomUUID();
         try {
             db.update("""
