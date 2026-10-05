@@ -50,7 +50,11 @@ public class ExamEngineController {
     if(req==null || req.answers()==null) throw new IllegalArgumentException("Answers are required");
     Map<String,Object> attempt=db.queryForMap("select exam_id,student_id,status from exam_attempts where id=? and tenant_id=? for update",attemptId,tenant);
     if(!"IN_PROGRESS".equals(attempt.get("status"))) return ResponseEntity.badRequest().body(Map.of("code","ATTEMPT_CLOSED","message","Attempt is already submitted"));
-    UUID studentId=(UUID)attempt.get("student_id"); access.requireOwnStudent(tenant, studentId, auth); UUID examId=(UUID)attempt.get("exam_id"); double total=0;
+    UUID studentId=(UUID)attempt.get("student_id"); access.requireOwnStudent(tenant, studentId, auth); UUID examId=(UUID)attempt.get("exam_id");
+    Map<String,Object> examRow=exam(examId,tenant);
+    LocalDateTime submitNow=LocalDateTime.now();
+    if(examRow.get("ends_at")!=null && submitNow.isAfter(timestamp(examRow.get("ends_at")))) throw new IllegalArgumentException("Exam has ended; the attempt can no longer be submitted");
+    double total=0;
     for(var e:req.answers().entrySet()){
       UUID q=UUID.fromString(e.getKey()); String answer=e.getValue()==null?"":String.valueOf(e.getValue()).trim();
       Map<String,Object> qrow;
