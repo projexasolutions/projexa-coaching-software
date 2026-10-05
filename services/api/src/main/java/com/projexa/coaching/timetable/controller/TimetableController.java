@@ -13,7 +13,6 @@ import java.util.regex.Pattern;
 @RestController
 @RequestMapping("/api/v1/timetable")
 public class TimetableController {
-  private static final Pattern UUID_PATTERN = Pattern.compile("^[0-9a-fA-F-]{36}$");
   private final JdbcTemplate db;
 
   public TimetableController(JdbcTemplate db){this.db=db;}
@@ -64,6 +63,7 @@ public class TimetableController {
 
   @PostMapping
   @PreAuthorize("hasAuthority('timetable.manage')")
+  @org.springframework.transaction.annotation.Transactional
   public Map<String,Object> create(@RequestBody EntryRequest r){
     UUID t=TenantContextHolder.getRequired();
     validate(r);
@@ -81,6 +81,7 @@ public class TimetableController {
 
   @PutMapping("/{id}")
   @PreAuthorize("hasAuthority('timetable.manage')")
+  @org.springframework.transaction.annotation.Transactional
   public Map<String,Object> update(@PathVariable UUID id,@RequestBody EntryRequest r){
     UUID t=TenantContextHolder.getRequired();
     if(!exists(id,t)) throw new IllegalArgumentException("Timetable entry not found");
@@ -124,7 +125,6 @@ public class TimetableController {
 
   private void ensureNoConflict(UUID t,EntryRequest r,UUID currentId){
     String exclusion=currentId==null?"":" and te.id<>?";
-    List<Object> argsBase=new ArrayList<>(List.of(t,r.dayOfWeek(),r.startTime(),r.endTime()));
     String time="te.start_time < ? and te.end_time > ?";
     if(r.teacherId()!=null){
       List<Object> a=new ArrayList<>(List.of(t,r.teacherId(),r.dayOfWeek(),r.endTime(),r.startTime()));

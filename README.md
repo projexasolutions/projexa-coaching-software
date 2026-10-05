@@ -35,9 +35,10 @@ Authentication/RBAC, tenant isolation, academic configuration, students/parents/
 ## Local development
 
 1. Copy `.env.example` to `.env` and set `JWT_SECRET` to a random secret.
-2. Start infrastructure with `docker compose up -d`.
-3. Run the API with Maven from `services/api`.
-4. Run the web app from `apps/web` with `npm install && npm run dev`.
+2. Start core infrastructure with `docker compose up -d`.
+3. Start local S3-compatible object storage only when needed with `docker compose --profile storage up -d minio`.
+4. Run the API with Maven from `services/api`.
+5. Run the web app from `apps/web` with `npm install && npm run dev`.
 
 Development seed credentials are documented in the migration and login screen. Replace them before any shared deployment.
 

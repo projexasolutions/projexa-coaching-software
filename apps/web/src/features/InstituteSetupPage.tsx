@@ -62,6 +62,7 @@ export default function InstituteSetupPage(){
 
  const progress=useMemo(()=>Math.round((done.length/steps.length)*100),[done]);
  const counts=data?.counts||{};
+ const readiness=data?.readiness||{ready:false,checks:[]};
  const current=steps[active]?.[0]||'INSTITUTE_PROFILE';
 
  async function saveProfile(){
@@ -196,10 +197,16 @@ export default function InstituteSetupPage(){
      </Box>
      {links[current]&&<Button variant="contained" href={links[current]} endIcon={<ArrowForwardRounded/>}>Open module</Button>}
     </Stack>
-    {active===8&&<Stack direction={{xs:'column',sm:'row'}} spacing={1.25} sx={{mt:3}}>
+    {active===8&&<Box sx={{mt:3}}>
+      <Typography sx={{fontWeight:900,mb:1}}>Go-live readiness</Typography>
+      <Stack spacing={1}>
+       {(readiness.checks||[]).map((x:any)=><Alert key={x.name} severity={x.ready?'success':'warning'} icon={x.ready?<CheckCircleRounded/>:undefined} sx={{py:.25}}>{x.name}: {x.detail}</Alert>)}
+      </Stack>
+      <Stack direction={{xs:'column',sm:'row'}} spacing={1.25} sx={{mt:2}}>
       <Button variant="outlined" onClick={ready} disabled={busy||status==='GO_LIVE'}>Mark ready for review</Button>
-      <Button variant="contained" color="success" startIcon={<PlayArrowRounded/>} onClick={goLive} disabled={busy||status!=='READY_FOR_REVIEW'||status==='GO_LIVE'}>Go Live</Button>
-    </Stack>}
+      <Button variant="contained" color="success" startIcon={<PlayArrowRounded/>} onClick={goLive} disabled={busy||status!=='READY_FOR_REVIEW'||status==='GO_LIVE'||!readiness.ready}>Go Live</Button>
+      </Stack>
+    </Box>}
    </CardContent>
   </Card>}
 

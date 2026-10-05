@@ -102,7 +102,13 @@ public class AdmissionsController {
   @PreAuthorize("hasAuthority('admissions.manage')")
   @org.springframework.transaction.annotation.Transactional
   public Map<String,Object> convert(@PathVariable UUID id,@RequestBody ConvertRequest r){
-    UUID t=TenantContextHolder.getRequired(); Map<String,Object> lead=detail(t,id).get("lead") instanceof Map<?,?> m?(Map<String,Object>)m:detail(t,id).get("lead")==null?null:(Map<String,Object>)detail(t,id).get("lead");
+    UUID t=TenantContextHolder.getRequired();
+    Map<String,Object> lead;
+    try {
+      lead=db.queryForMap("select * from leads where id=? and tenant_id=? for update",id,t);
+    } catch(Exception e) {
+      throw new IllegalArgumentException("Lead not found");
+    }
     if(r==null||r.batchId()==null||r.admissionNumber()==null||r.admissionNumber().isBlank()) throw new IllegalArgumentException("Admission number and batch are required");
     if(count("select count(*) from leads where id=? and tenant_id=? and stage='ADMITTED'",id,t)>0) throw new IllegalArgumentException("Lead is already converted");
     Map<String,Object> batch=db.queryForMap("select id,academic_year_id,class_id,stream_id from batches where id=? and tenant_id=? and status='ACTIVE'",r.batchId(),t);
