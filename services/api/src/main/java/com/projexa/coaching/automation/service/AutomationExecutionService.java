@@ -20,8 +20,12 @@ public class AutomationExecutionService {
 
  public void executeEvent(UUID tenant,String eventType,String eventId,Object payload){
    List<Map<String,Object>> rules=db.queryForList("select id,name,cooldown_seconds,max_depth from automation_rules where tenant_id=? and active=true and trigger_event=?",tenant,eventType);
+   int depth=eventDepth(payload);
    for(Map<String,Object> rule:rules){
-     UUID ruleId=(UUID)rule.get("id"); if(cooldownActive(ruleId))continue;
+     UUID ruleId=(UUID)rule.get("id");
+     int maxDepth=rule.get("max_depth")==null?0:((Number)rule.get("max_depth")).intValue();
+     if(maxDepth>0 && depth>=maxDepth) continue;
+     if(cooldownActive(ruleId))continue;
      List<Map<String,Object>> conditions=db.queryForList("select field_name,operator,comparison_value from automation_conditions where rule_id=? order by group_no",ruleId);
      if(!matches(conditions,payload))continue;
      Integer duplicate=db.queryForObject("select count(*) from automation_runs where rule_id=? and event_id=?",Integer.class,ruleId,eventId); if(duplicate!=null&&duplicate>0)continue;
@@ -35,6 +39,10 @@ public class AutomationExecutionService {
    }
  }
 
+ private int eventDepth(Object payload){
+  if(payload instanceof Map<?,?> m){Object d=m.get("_automationDepth");try{return d==null?0:Math.max(0,Math.min(100,Integer.parseInt(String.valueOf(d))));}catch(Exception ignored){return 0;}}
+  return 0;
+ }
  private boolean cooldownActive(UUID rule){Integer seconds=db.queryForObject("select coalesce(cooldown_seconds,0) from automation_rules where id=?",Integer.class,rule);if(seconds==null||seconds<=0)return false;Integer count=db.queryForObject("select count(*) from automation_runs where rule_id=? and status='SUCCESS' and started_at>?",Integer.class,rule,LocalDateTime.now().minusSeconds(seconds));return count!=null&&count>0;}
  private boolean matches(List<Map<String,Object>> cs,Object payload){if(cs.isEmpty())return true;Map<?,?> map=payload instanceof Map<?,?> m?m:Map.of("value",String.valueOf(payload));for(Map<String,Object> c:cs){Object actual=map.get(String.valueOf(c.get("field_name")));String op=String.valueOf(c.get("operator"));String expected=String.valueOf(c.get("comparison_value"));boolean ok=switch(op){case "EQUALS"->Objects.equals(String.valueOf(actual),expected);case "NOT_EQUALS"->!Objects.equals(String.valueOf(actual),expected);case "CONTAINS"->actual!=null&&String.valueOf(actual).contains(expected);case "NOT_CONTAINS"->actual==null||!String.valueOf(actual).contains(expected);case "IS_EMPTY"->actual==null||String.valueOf(actual).isBlank();case "IS_NOT_EMPTY"->actual!=null&&!String.valueOf(actual).isBlank();case "GREATER_THAN"->num(actual)>Double.parseDouble(expected);case "LESS_THAN"->num(actual)<Double.parseDouble(expected);case "GREATER_THAN_OR_EQUAL"->num(actual)>=Double.parseDouble(expected);case "LESS_THAN_OR_EQUAL"->num(actual)<=Double.parseDouble(expected);case "IN"->Arrays.asList(expected.split(",")).contains(String.valueOf(actual));case "NOT_IN"->!Arrays.asList(expected.split(",")).contains(String.valueOf(actual));case "BETWEEN"->{String[] x=expected.split(",",2);double n=num(actual);yield x.length==2&&n>=Double.parseDouble(x[0])&&n<=Double.parseDouble(x[1]);}default->false;};if(!ok)return false;}return true;}
  private double num(Object o){try{return Double.parseDouble(String.valueOf(o));}catch(Exception e){return Double.NaN;}}
