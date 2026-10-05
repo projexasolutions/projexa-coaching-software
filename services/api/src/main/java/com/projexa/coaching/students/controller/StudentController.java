@@ -63,10 +63,15 @@ public class StudentController {
                     ay.name as "academicYear",
                     p.name as "programName"
                 from students s
-                left join enrollments e
-                    on e.student_id=s.id
-                   and e.tenant_id=s.tenant_id
-                   and e.status='ACTIVE'
+                left join lateral (
+                    select e.*
+                    from enrollments e
+                    where e.student_id=s.id
+                      and e.tenant_id=s.tenant_id
+                      and e.status='ACTIVE'
+                    order by e.enrolled_at desc, e.id desc
+                    limit 1
+                ) e on true
                 left join batches b on b.id=e.batch_id and b.tenant_id=s.tenant_id
                 left join classes c on c.id=e.class_id and c.tenant_id=s.tenant_id
                 left join streams st on st.id=e.stream_id and st.tenant_id=s.tenant_id
