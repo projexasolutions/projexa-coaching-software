@@ -5,6 +5,7 @@ import {DashboardRounded,PeopleRounded,ChatRounded,SchoolRounded,EventAvailableR
 import LoginPage from '../features/auth/LoginPage';
 import {useAuth} from '../features/auth/authStore';
 import {LiveDashboard,LiveStudentsPage,LiveStudentProfile,LiveAcademicsPage,LiveAttendancePage,LiveFinancePage} from '../features/Phase1Pages';
+import AcademicsWorkspacePage from '../features/AcademicsWorkspacePage';
 import TimetablePage from '../features/TimetablePage';
 import FacultyPage from '../features/FacultyPage';
 import HomeworkPage from '../features/HomeworkPage';
@@ -146,7 +147,7 @@ export default function App(){return <BrowserRouter><Routes>
  <Route path="/owner" element={<Guard><Shell><Page title="Command Center" subtitle="Live operational view of your institute."><LiveDashboard/></Page></Shell></Guard>}/>
  <Route path="/owner/students" element={<Guard><Shell><Page title="Students" subtitle="Manage student records and operational data."><LiveStudentsPage/></Page></Shell></Guard>}/>
  <Route path="/owner/students/:id" element={<Guard><Shell><Page title="Student Profile" subtitle="Live student record and fee ledger."><Profile/></Page></Shell></Guard>}/>
- <Route path="/owner/academics" element={<Guard><Shell><Page title="Academics" subtitle="Configure academic years, classes, streams, subjects and batches."><LiveAcademicsPage/></Page></Shell></Guard>}/>
+ <Route path="/owner/academics" element={<Guard><Shell><Page title="Academics" subtitle="Configure academic years, classes, streams, subjects and batches."><AcademicsWorkspacePage/></Page></Shell></Guard>}/>
  <Route path="/owner/attendance" element={<Guard><Shell><Page title="Attendance" subtitle="Create sessions and mark live attendance."><LiveAttendancePage/></Page></Shell></Guard>}/>
  <Route path="/owner/finance" element={<Guard><Shell><Page title="Finance" subtitle="Manage invoices, collections and outstanding fees."><LiveFinancePage/></Page></Shell></Guard>}/>
  <Route path="/owner/timetable" element={<Guard><Shell><Page title="Timetable Management" subtitle="Schedule batches, teachers and classrooms with conflict protection."><TimetablePage/></Page></Shell></Guard>}/>
