@@ -192,8 +192,8 @@ export default function App(){return <BrowserRouter><Routes>
  <Route path="/owner/support" element={<Guard><Shell><Page title="Support" subtitle="Track institute support requests and operational issues."><SupportPage/></Page></Shell></Guard>}/>
  <Route path="/owner/settings" element={<Guard><Shell><Page title="Settings" subtitle="Configure institute-level operational policies."><SettingsPage/></Page></Shell></Guard>}/>
  <Route path="/owner/setup" element={<Guard><Shell><Page title="Institute Setup Center" subtitle="Configure the institute structure, onboarding progress and go-live readiness."><InstituteSetupPage/></Page></Shell></Guard>}/>
- <Route path="/admin/institutes" element={<PlatformGuard><Shell><Page title="Platform Institutes" subtitle="Manage Projexa customer institutes and onboarding readiness."><PlatformInstitutesPage/></Page></Shell></Guard>}/>
- <Route path="/admin/institutes/:id" element={<PlatformGuard><Shell><Page title="Institute Setup" subtitle="Configure a customer institute before go-live."><PlatformInstituteSetupPage/></Page></Shell></Guard>}/>
+ <Route path="/admin/institutes" element={<PlatformGuard><Shell><Page title="Platform Institutes" subtitle="Manage Projexa customer institutes and onboarding readiness."><PlatformInstitutesPage/></Page></Shell></PlatformGuard>}/>
+ <Route path="/admin/institutes/:id" element={<PlatformGuard><Shell><Page title="Institute Setup" subtitle="Configure a customer institute before go-live."><PlatformInstituteSetupPage/></Page></Shell></PlatformGuard>}/>
  <Route path="/owner/automation" element={<Guard><Shell><Page title="Automation Center" subtitle="Create controlled event-driven workflows for repetitive operations."><AutomationPage/></Page></Shell></Guard>}/>
  <Route path="/owner/notifications" element={<Guard><Shell><Page title="Notifications" subtitle="System alerts and workflow notifications."><NotificationsPage/></Page></Shell></Guard>}/>
  <Route path="/owner/questions" element={<Guard><Shell><Page title="Question Bank" subtitle="Build reusable objective questions for the universal exam engine."><QuestionBankPage/></Page></Shell></Guard>}/>
