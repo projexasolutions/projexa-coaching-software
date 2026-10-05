@@ -106,6 +106,7 @@ public class PlatformInstituteSetupController {
             @PathVariable UUID tenantId,
             @RequestBody Map<String, Object> payload,
             Authentication auth) {
+        ensurePlatformAdmin(auth);
         ensureTenant(tenantId);
         ensureProfile(tenantId);
 
@@ -128,6 +129,18 @@ public class PlatformInstituteSetupController {
         }
 
         if ("GO_LIVE".equals(status)) {
+            Map<String,Object> tenant = db.queryForMap(
+                "select name,slug from tenants where id=?", tenantId);
+            Map<String,Object> checks = new LinkedHashMap<>();
+            checks.put("profile", tenant.get("name") != null && tenant.get("slug") != null);
+            checks.put("academicYear", count("academic_years", tenantId) > 0);
+            checks.put("class", count("classes", tenantId) > 0);
+            checks.put("subject", count("subjects", tenantId) > 0);
+            checks.put("batch", count("batches", tenantId) > 0);
+            checks.put("faculty", count("teachers", tenantId) > 0);
+            if (checks.values().stream().anyMatch(v -> !Boolean.TRUE.equals(v))) {
+                throw new ApiException("SETUP_NOT_READY", "Institute setup is not ready for go-live. Complete the required setup items first.");
+            }
             db.update("""
                 update institute_setup_profiles
                 set go_live_at=coalesce(go_live_at,current_timestamp)
