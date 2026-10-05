@@ -122,9 +122,10 @@ public class PlatformInstituteSetupController {
 
         if (completed != null) {
             try {
-                new com.fasterxml.jackson.databind.ObjectMapper().readTree(completed);
+                com.fasterxml.jackson.databind.JsonNode node = new com.fasterxml.jackson.databind.ObjectMapper().readTree(completed);
+                if (!node.isArray()) throw new IllegalArgumentException();
             } catch (Exception e) {
-                throw new ApiException("VALIDATION_ERROR", "completedSteps must be valid JSON.");
+                throw new ApiException("VALIDATION_ERROR", "completedSteps must be a JSON array.");
             }
         }
 
