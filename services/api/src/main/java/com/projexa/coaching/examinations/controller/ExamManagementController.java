@@ -107,8 +107,10 @@ public class ExamManagementController {
     int order=1;
     for(UUID q:ids){
       Map<String,Object> row;
-      try{row=db.queryForMap("select id,subject_id from questions where id=? and tenant_id=? and active=true",q,t);}catch(Exception e){throw new IllegalArgumentException("Question is invalid for this institute: "+q);}
+      try{row=db.queryForMap("select id,subject_id,question_type from questions where id=? and tenant_id=? and active=true",q,t);}catch(Exception e){throw new IllegalArgumentException("Question is invalid for this institute: "+q);}
       UUID subject=(UUID)row.get("subject_id");
+      String questionType=String.valueOf(row.get("question_type"));
+      if(!Set.of("MCQ_SINGLE","MCQ_MULTI","TRUE_FALSE","FILL_BLANK","MATCH").contains(questionType)) throw new IllegalArgumentException("Question type is not yet supported by the live exam grader: "+questionType);
       if(subject==null||count("select count(*) from exam_subjects where tenant_id=? and exam_id=? and subject_id=?",t,id,subject)==0) throw new IllegalArgumentException("Question subject is not configured for this exam");
       db.update("insert into exam_questions(id,tenant_id,exam_id,question_id,subject_id,display_order) values(?,?,?,?,?,?)",UUID.randomUUID(),t,id,q,subject,order++);
     }
