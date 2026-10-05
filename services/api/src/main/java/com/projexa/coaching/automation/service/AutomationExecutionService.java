@@ -28,7 +28,7 @@ public class AutomationExecutionService {
      if(cooldownActive(ruleId))continue;
      List<Map<String,Object>> conditions=db.queryForList("select field_name,operator,comparison_value from automation_conditions where rule_id=? order by group_no",ruleId);
      if(!matches(conditions,payload))continue;
-     Integer duplicate=db.queryForObject("select count(*) from automation_runs where tenant_id=? and rule_id=? and event_id=?",Integer.class,tenant,ruleId,eventId); if(duplicate!=null&&duplicate>0)continue;
+     Integer duplicateCount=db.queryForObject("select count(*) from automation_runs where tenant_id=? and rule_id=? and event_id=?",Integer.class,tenant,ruleId,eventId); if(duplicateCount!=null&&duplicateCount>0)continue;
      UUID run=UUID.randomUUID();
      try{
        db.update("insert into automation_runs(id,tenant_id,rule_id,event_id,status,attempt_count,started_at) values(?,?,?,?,?,?,now())",run,tenant,ruleId,eventId,"RUNNING",1);
