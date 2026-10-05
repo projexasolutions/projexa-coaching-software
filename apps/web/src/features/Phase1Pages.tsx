@@ -1,5 +1,5 @@
 // @ts-nocheck
-import {useEffect,useMemo,useState} from 'react';
+import {useEffect,useMemo,useRef,useState} from 'react';
 import {api} from '../services';
 import {Alert,Box,Button,Card,CardContent,Chip,Dialog,DialogActions,DialogContent,DialogTitle,Divider,IconButton,InputAdornment,MenuItem,Select,Stack,Table,TableBody,TableCell,TableHead,TableRow,TextField,Typography} from '@mui/material';
 import {AddRounded,DeleteOutlineRounded,EditRounded,RefreshRounded,SearchRounded,PaymentsRounded,EventAvailableRounded,PeopleRounded,TrendingUpRounded} from '@mui/icons-material';
@@ -88,9 +88,9 @@ export function LiveDashboard(){
 const money=(n:any)=>`₹${Number(n||0).toLocaleString('en-IN',{maximumFractionDigits:2})}`;
 
 export function LiveStudentsPage(){
- const {rows,loading,error,load}=useList('/students/operational'); const [q,setQ]=useState(''); const [open,setOpen]=useState(false);const [edit,setEdit]=useState<any>(null); const [enroll,setEnroll]=useState<any>(null);
+ const {rows,loading,error,load}=useList('/students/operational'); const [q,setQ]=useState(''); const [open,setOpen]=useState(false);const [edit,setEdit]=useState<any>(null); const [enroll,setEnroll]=useState<any>(null); const [importOpen,setImportOpen]=useState(false);
  const filtered=useMemo(()=>rows.filter(r=>JSON.stringify(r).toLowerCase().includes(q.toLowerCase())),[rows,q]);
- return <Stack spacing={2.5}><Stack direction={{xs:'column',sm:'row'}} gap={1.5}><TextField size="small" fullWidth placeholder="Search name, admission number, phone…" value={q} onChange={e=>setQ(e.target.value)} slotProps={{input:{startAdornment:<InputAdornment position="start"><SearchRounded fontSize="small"/></InputAdornment>}}}/><Button variant="outlined" startIcon={<RefreshRounded/>} onClick={load}>Refresh</Button><Button variant="contained" startIcon={<AddRounded/>} onClick={()=>{setEdit(null);setOpen(true)}}>Add student</Button></Stack><Card elevation={0} sx={{border:'1px solid #e5e7eb'}}><CardContent sx={{p:0,overflow:'auto'}}><Busy loading={loading} error={error}/>{!loading&&!error&&<Table><TableHead><TableRow>{['Admission','Student','Class / Batch','Phone','Email','Status',''].map(x=><TableCell key={x} sx={{fontWeight:900,fontSize:11}}>{x}</TableCell>)}</TableRow></TableHead><TableBody>{filtered.map(r=>{
+ return <Stack spacing={2.5}><Stack direction={{xs:'column',sm:'row'}} gap={1.5}><TextField size="small" fullWidth placeholder="Search name, admission number, phone…" value={q} onChange={e=>setQ(e.target.value)} slotProps={{input:{startAdornment:<InputAdornment position="start"><SearchRounded fontSize="small"/></InputAdornment>}}}/><Button variant="outlined" startIcon={<RefreshRounded/>} onClick={load}>Refresh</Button><Button variant="outlined" onClick={()=>setImportOpen(true)}>Import CSV</Button><Button variant="contained" startIcon={<AddRounded/>} onClick={()=>{setEdit(null);setOpen(true)}}>Add student</Button></Stack><Card elevation={0} sx={{border:'1px solid #e5e7eb'}}><CardContent sx={{p:0,overflow:'auto'}}><Busy loading={loading} error={error}/>{!loading&&!error&&<Table><TableHead><TableRow>{['Admission','Student','Class / Batch','Phone','Email','Status',''].map(x=><TableCell key={x} sx={{fontWeight:900,fontSize:11}}>{x}</TableCell>)}</TableRow></TableHead><TableBody>{filtered.map(r=>{
  const admission=r.admissionNumber??r.admission_number??'—';
  const first=r.firstName??r.first_name??'';
  const last=r.lastName??r.last_name??'';
@@ -110,7 +110,7 @@ export function LiveStudentsPage(){
    <IconButton color="error" onClick={async()=>{if(confirm('Archive this student?')){await api.delete(`/students/${r.id}`);load()}}}><DeleteOutlineRounded/></IconButton>
   </TableCell>
  </TableRow>
-})}</TableBody></Table>}</CardContent></Card><StudentDialog open={open} initial={edit} onClose={()=>setOpen(false)} onSaved={()=>{setOpen(false);load()}}/><EnrollmentDialog open={!!enroll} student={enroll} onClose={()=>setEnroll(null)} onSaved={()=>{setEnroll(null);load()}}/></Stack>
+})}</TableBody></Table>}</CardContent></Card><StudentDialog open={open} initial={edit} onClose={()=>setOpen(false)} onSaved={()=>{setOpen(false);load()}}/><StudentImportDialog open={importOpen} onClose={()=>setImportOpen(false)} onImported={()=>{setImportOpen(false);load()}}/><EnrollmentDialog open={!!enroll} student={enroll} onClose={()=>setEnroll(null)} onSaved={()=>{setEnroll(null);load()}}/></Stack>
 }
 
 function StudentDialog({open,initial,onClose,onSaved}:{open:boolean;initial:any;onClose:()=>void;onSaved:()=>void}){
@@ -156,6 +156,33 @@ function StudentDialog({open,initial,onClose,onSaved}:{open:boolean;initial:any;
 }
 
 function EnrollmentDialog({open,student,onClose,onSaved}:{open:boolean;student:any;onClose:()=>void;onSaved:()=>void}){const {rows:years}=useList('/academic-years');const {rows:classes}=useList('/classes');const {rows:streams}=useList('/streams');const {rows:batches}=useList('/batches');const [f,setF]=useState<any>({academicYearId:'',classId:'',streamId:'',batchId:''});const [error,setError]=useState('');useEffect(()=>{setF({academicYearId:years.find((x:any)=>x.isCurrent)?.id||years[0]?.id||'',classId:student?.classId||'',streamId:student?.streamId||'',batchId:student?.batchId||''})},[open,student,years]);const save=async()=>{setError('');if(!f.academicYearId||!f.classId||!f.batchId){setError('Academic year, class and batch are required.');return;}try{await api.post(`/students/${student.id}/enrollment`,{...f,streamId:f.streamId||null});onSaved()}catch(e){setError(err(e))}};return <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm"><DialogTitle>Assign academic enrollment</DialogTitle><DialogContent><Stack spacing={2} mt={1}>{error&&<Alert severity="error">{error}</Alert>}<Select value={f.academicYearId} displayEmpty onChange={e=>setF((x:any)=>({...x,academicYearId:e.target.value}))}>{years.map((x:any)=><MenuItem key={x.id} value={x.id}>{x.name}</MenuItem>)}</Select><Select value={f.classId} displayEmpty onChange={e=>setF((x:any)=>({...x,classId:e.target.value}))}><MenuItem value="">Select class</MenuItem>{classes.map((x:any)=><MenuItem key={x.id} value={x.id}>{x.name}</MenuItem>)}</Select><Select value={f.streamId} displayEmpty onChange={e=>setF((x:any)=>({...x,streamId:e.target.value}))}><MenuItem value="">No stream</MenuItem>{streams.map((x:any)=><MenuItem key={x.id} value={x.id}>{x.name}</MenuItem>)}</Select><Select value={f.batchId} displayEmpty onChange={e=>setF((x:any)=>({...x,batchId:e.target.value}))}><MenuItem value="">Select batch</MenuItem>{batches.map((x:any)=><MenuItem key={x.id} value={x.id}>{x.name}</MenuItem>)}</Select></Stack></DialogContent><DialogActions><Button onClick={onClose}>Cancel</Button><Button variant="contained" onClick={save}>Save enrollment</Button></DialogActions></Dialog>}
+
+function StudentImportDialog({open,onClose,onImported}:{open:boolean;onClose:()=>void;onImported:()=>void}){
+ const input=useRef<HTMLInputElement|null>(null); const [file,setFile]=useState<File|null>(null); const [result,setResult]=useState<any>(null); const [busy,setBusy]=useState(false); const [error,setError]=useState('');
+ const send=async(commit:boolean)=>{
+  if(!file){setError('Choose a CSV file first.');return}
+  setBusy(true);setError('');
+  try{const body=new FormData();body.append('file',file);const r=await api.post(commit?'/students/import':'/students/import/preview',body,{headers:{'Content-Type':'multipart/form-data'}});setResult(r.data?.data??r.data);if(commit)onImported();}
+  catch(e){setError(err(e))}finally{setBusy(false)}
+ };
+ useEffect(()=>{if(!open){setFile(null);setResult(null);setError('')}},[open]);
+ return <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
+  <DialogTitle>Import students from CSV</DialogTitle>
+  <DialogContent><Stack spacing={2} mt={1}>
+   {error&&<Alert severity="error">{error}</Alert>}
+   <Card variant="outlined" sx={{p:2}}><Stack direction={{xs:'column',sm:'row'}} spacing={1.5} alignItems={{sm:'center'}}>
+    <input ref={input} type="file" accept=".csv,text/csv" hidden onChange={e=>{setFile(e.target.files?.[0]||null);setResult(null)}}/>
+    <Button variant="outlined" onClick={()=>input.current?.click()}>Choose CSV</Button>
+    <Typography sx={{fontSize:12,color:'#64748b'}}>{file?.name||'Required columns: admissionNumber, firstName. Optional: lastName, email, phone, dateOfBirth, gender, status, address.'}</Typography>
+   </Stack></Card>
+   {result&&<><Box sx={{display:'grid',gridTemplateColumns:{xs:'repeat(2,1fr)',sm:'repeat(4,1fr)'},gap:1}}>{[['Rows',result.totalRows],['Valid',result.validRows],['Errors',result.failedRows],['Imported',result.importedRows]].map(([k,v])=><Card key={k as string} variant="outlined"><CardContent sx={{p:1.5}}><Typography sx={{fontSize:10,color:'#64748b'}}>{k as string}</Typography><Typography sx={{fontSize:22,fontWeight:900}}>{v as any}</Typography></CardContent></Card>)}</Box>
+    {(result.errors||[]).length>0&&<Alert severity="warning">Fix the listed rows and preview again before importing.</Alert>}
+    {(result.preview||[]).length>0&&<Box sx={{overflowX:'auto'}}><Table size="small"><TableHead><TableRow>{['Admission','First name','Last name','Phone','Email'].map(x=><TableCell key={x} sx={{fontWeight:900,fontSize:11}}>{x}</TableCell>)}</TableRow></TableHead><TableBody>{result.preview.slice(0,8).map((r:any,i:number)=><TableRow key={i}><TableCell>{r.admissionNumber}</TableCell><TableCell>{r.firstName}</TableCell><TableCell>{r.lastName||'—'}</TableCell><TableCell>{r.phone||'—'}</TableCell><TableCell>{r.email||'—'}</TableCell></TableRow>)}</TableBody></Table></Box>}
+   </>}
+  </Stack></DialogContent>
+  <DialogActions><Button onClick={onClose}>Cancel</Button><Button variant="outlined" disabled={!file||busy} onClick={()=>send(false)}>Preview & Validate</Button><Button variant="contained" disabled={!file||busy||!result||result.failedRows>0} onClick={()=>send(true)}>Import valid students</Button></DialogActions>
+ </Dialog>
+}
 
 export function LiveStudentProfile({id}:{id:string}){
  const [student,setStudent]=useState<any>(null),[invoices,setInvoices]=useState<any[]>([]),[loading,setLoading]=useState(true);
