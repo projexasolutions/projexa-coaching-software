@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
 import java.util.*;
 
 @RestController
@@ -102,7 +103,7 @@ public class StudentImportController {
                 insert into students(id,tenant_id,admission_number,first_name,last_name,email,phone,date_of_birth,gender,status,address)
                 values(?,?,?,?,?,?,?,?,?,?,?)
                 """, id, tenant, s.get("admissionNumber"), s.get("firstName"), nullable(s.get("lastName")),
-                nullable(s.get("email")), nullable(s.get("phone")), nullable(s.get("dateOfBirth")),
+                nullable(s.get("email")), nullable(s.get("phone")), parseDate(s.get("dateOfBirth")),
                 nullable(s.get("gender")), Optional.ofNullable(nullable(s.get("status"))).orElse("ACTIVE"),
                 nullable(s.get("address")));
             return true;
@@ -117,6 +118,10 @@ public class StudentImportController {
         String admission = nullable(s.get("admissionNumber"));
         if (admission != null && db.queryForObject("select count(*) from students where tenant_id=? and admission_number=?", Integer.class, tenant, admission) > 0)
             errors.add("Admission number already exists");
+        String dob = nullable(s.get("dateOfBirth"));
+        if (dob != null) {
+            try { LocalDate.parse(dob); } catch (Exception e) { errors.add("dateOfBirth must use YYYY-MM-DD"); }
+        }
         String status = nullable(s.get("status"));
         if (status != null && !Set.of("ACTIVE","INACTIVE","WITHDRAWN","TRANSFERRED","ALUMNI").contains(status.toUpperCase()))
             errors.add("Unsupported student status");
@@ -167,6 +172,11 @@ public class StudentImportController {
     private String normalizeHeader(String value) {
         if (value == null) return "";
         return value.trim().replaceAll("[^A-Za-z0-9]", "").toLowerCase(Locale.ROOT);
+    }
+
+    private LocalDate parseDate(String value) {
+        String x = nullable(value);
+        return x == null ? null : LocalDate.parse(x);
     }
 
     private String nullable(String value) {
