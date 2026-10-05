@@ -54,16 +54,35 @@ public class FinanceController {
     String idempotencyKey=(req.idempotencyKey()==null||req.idempotencyKey().isBlank())?UUID.randomUUID().toString():req.idempotencyKey().trim();
     double amount=req.amount(); double due=((Number)inv.get("amount")).doubleValue()-((Number)inv.get("paid_amount")).doubleValue();
     if(amount<=0||amount>due)throw new IllegalArgumentException("Invalid payment amount");
+    String gateway=req.gateway()==null||req.gateway().isBlank()?"MANUAL":req.gateway().trim().toUpperCase(Locale.ROOT);
+    if(!Set.of("MANUAL","UPI_QR","RAZORPAY").contains(gateway))throw new IllegalArgumentException("Unsupported payment gateway");
     UUID payment=UUID.randomUUID();
     List<UUID> inserted=db.query("insert into payments(id,tenant_id,invoice_id,amount,gateway,status,paid_at,idempotency_key) values(?,?,?,?,?,?,?,?) on conflict(tenant_id,idempotency_key) do nothing returning id",
       rs -> { List<UUID> ids=new ArrayList<>(); while(rs.next()) ids.add((UUID)rs.getObject(1)); return ids; },
-      payment,t,req.invoiceId(),amount,req.gateway()==null?"MANUAL":req.gateway(),"SUCCESS",LocalDateTime.now(),idempotencyKey);
+      payment,t,req.invoiceId(),amount,gateway,"PENDING",null,idempotencyKey);
     if(inserted.isEmpty()){
       Map<String,Object> existing=db.queryForMap("select id,invoice_id,status from payments where tenant_id=? and idempotency_key=?",t,idempotencyKey);
       return Map.of("paymentId",existing.get("id"),"invoiceId",existing.get("invoice_id"),"verified","SUCCESS".equals(existing.get("status")),"idempotent",true);
     }
-    db.update("update invoices set paid_amount=paid_amount+?,status=case when paid_amount+?>=amount then 'PAID' else 'PARTIALLY_PAID' end where id=? and tenant_id=?",amount,amount,req.invoiceId(),t);
-    return Map.of("paymentId",payment,"invoiceId",req.invoiceId(),"verified",true,"idempotent",false);
+    return Map.of("paymentId",payment,"invoiceId",req.invoiceId(),"status","PENDING","verified",false,"idempotent",false);
+  }
+
+  @PostMapping("/payments/{paymentId}/verify")
+  @PreAuthorize("hasAuthority('finance.manage') or hasAnyRole('INSTITUTE_OWNER','INSTITUTE_ADMIN')")
+  @org.springframework.transaction.annotation.Transactional
+  public Map<String,Object> verifyPayment(@PathVariable UUID paymentId){
+    UUID t=TenantContextHolder.getRequired();
+    Map<String,Object> payment=db.queryForMap("select id,invoice_id,amount,status from payments where id=? and tenant_id=? for update",paymentId,t);
+    if(!"PENDING".equals(payment.get("status")))throw new IllegalArgumentException("Only pending payments can be verified");
+    UUID invoiceId=(UUID)payment.get("invoice_id");
+    Map<String,Object> inv=db.queryForMap("select amount,paid_amount,status from invoices where id=? and tenant_id=? for update",invoiceId,t);
+    double amount=((Number)payment.get("amount")).doubleValue();
+    double due=((Number)inv.get("amount")).doubleValue()-((Number)inv.get("paid_amount")).doubleValue();
+    if(amount<=0||amount>due)throw new IllegalArgumentException("Payment exceeds invoice balance");
+    db.update("update payments set status='SUCCESS',paid_at=? where id=? and tenant_id=? and status='PENDING'",LocalDateTime.now(),paymentId,t);
+    db.update("update invoices set paid_amount=paid_amount+?,status=case when paid_amount+?>=amount then 'PAID' else 'PARTIALLY_PAID' end where id=? and tenant_id=?",amount,amount,invoiceId,t);
+    return Map.of("paymentId",paymentId,"invoiceId",invoiceId,"status","SUCCESS","verified",true);
+  }
   }
 
   @GetMapping("/summary")
