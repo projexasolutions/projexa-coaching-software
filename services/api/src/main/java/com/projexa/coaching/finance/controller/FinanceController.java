@@ -68,7 +68,9 @@ public class FinanceController {
       rs -> { List<UUID> ids=new ArrayList<>(); while(rs.next()) ids.add((UUID)rs.getObject(1)); return ids; },
       payment,t,req.invoiceId(),amount,gateway,"PENDING",null,idempotencyKey);
     if(inserted.isEmpty()){
-      Map<String,Object> existing=db.queryForMap("select id,invoice_id,status from payments where tenant_id=? and idempotency_key=?",t,idempotencyKey);
+      Map<String,Object> existing=db.queryForMap("select id,invoice_id,status,amount from payments where tenant_id=? and idempotency_key=?",t,idempotencyKey);
+      double priorAmount=((Number)existing.get("amount")).doubleValue();
+      if(Double.compare(priorAmount,amount)!=0) throw new ApiException("IDEMPOTENCY_CONFLICT","Idempotency key was already used for a different payment amount.");
       return Map.of("paymentId",existing.get("id"),"invoiceId",existing.get("invoice_id"),"verified","SUCCESS".equals(existing.get("status")),"idempotent",true);
     }
     return Map.of("paymentId",payment,"invoiceId",req.invoiceId(),"status","PENDING","verified",false,"idempotent",false);
