@@ -21,6 +21,7 @@ import SettingsPage from '../features/SettingsPage';
 import AutomationPage from '../features/AutomationPage';
 import QuestionBankPage from '../features/QuestionBankPage';
 import NotificationsPage from '../features/NotificationsPage';
+import InstituteSetupPage from '../features/InstituteSetupPage';
 
 const navGroups:any[] = [
   {
@@ -59,6 +60,7 @@ const navGroups:any[] = [
       ['/owner/reports','Reports',BarChartRounded],
       ['/owner/support','Support',SupportAgentRounded],
       ['/owner/settings','Settings',SettingsRounded],
+      ['/owner/setup','Setup Center',SettingsRounded],
     ]
   }
 ];
@@ -162,6 +164,7 @@ export default function App(){return <BrowserRouter><Routes>
  <Route path="/owner/reports" element={<Guard><Shell><Page title="Reports" subtitle="Institute performance, collections and attendance reporting."><ReportsPage/></Page></Shell></Guard>}/>
  <Route path="/owner/support" element={<Guard><Shell><Page title="Support" subtitle="Track institute support requests and operational issues."><SupportPage/></Page></Shell></Guard>}/>
  <Route path="/owner/settings" element={<Guard><Shell><Page title="Settings" subtitle="Configure institute-level operational policies."><SettingsPage/></Page></Shell></Guard>}/>
+ <Route path="/owner/setup" element={<Guard><Shell><Page title="Institute Setup Center" subtitle="Configure the institute structure, onboarding progress and go-live readiness."><InstituteSetupPage/></Page></Shell></Guard>}/>
  <Route path="/owner/automation" element={<Guard><Shell><Page title="Automation Center" subtitle="Create controlled event-driven workflows for repetitive operations."><AutomationPage/></Page></Shell></Guard>}/>
  <Route path="/owner/notifications" element={<Guard><Shell><Page title="Notifications" subtitle="System alerts and workflow notifications."><NotificationsPage/></Page></Shell></Guard>}/>
  <Route path="/owner/questions" element={<Guard><Shell><Page title="Question Bank" subtitle="Build reusable objective questions for the universal exam engine."><QuestionBankPage/></Page></Shell></Guard>}/>
