@@ -26,7 +26,8 @@ public class PlatformInstituteSetupController {
     }
 
     @GetMapping
-    public ApiResponse<Map<String, Object>> overview(@PathVariable UUID tenantId) {
+    public ApiResponse<Map<String, Object>> overview(@PathVariable UUID tenantId, Authentication auth) {
+        ensurePlatformAdmin(auth);
         ensureTenant(tenantId);
         ensureProfile(tenantId);
 
@@ -61,6 +62,7 @@ public class PlatformInstituteSetupController {
             @PathVariable UUID tenantId,
             @RequestBody Map<String, Object> payload,
             Authentication auth) {
+        ensurePlatformAdmin(auth);
         ensureTenant(tenantId);
         ensureProfile(tenantId);
 
@@ -146,6 +148,20 @@ public class PlatformInstituteSetupController {
         audit(auth, "INSTITUTE_SETUP_PROGRESS_UPDATED", tenantId,
             Map.of("currentStep", String.valueOf(step), "status", String.valueOf(status)));
         return ApiResponse.ok(null);
+    }
+
+    private void ensurePlatformAdmin(Authentication auth) {
+        UUID userId;
+        try {
+            userId = UUID.fromString(auth.getName());
+        } catch (Exception e) {
+            throw new ApiException("UNAUTHORIZED", "Platform administrator identity is invalid.");
+        }
+        Integer count = db.queryForObject(
+            "select count(*) from platform_admins where user_id=? and status='ACTIVE'",
+            Integer.class, userId);
+        if (count == null || count == 0)
+            throw new ApiException("FORBIDDEN", "Platform administrator access is required.");
     }
 
     private void ensureTenant(UUID tenantId) {
