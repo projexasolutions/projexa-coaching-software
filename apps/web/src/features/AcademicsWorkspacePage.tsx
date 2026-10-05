@@ -2,6 +2,7 @@ import {useEffect,useMemo,useState} from 'react';
 import {api} from '../services';
 import {Alert,Box,Button,Card,CardContent,Chip,Dialog,DialogActions,DialogContent,DialogTitle,Divider,MenuItem,Select,Stack,Tab,Tabs,TextField,Typography} from '@mui/material';
 import {AddRounded,DeleteOutlineRounded,RefreshRounded,SchoolRounded,SubjectRounded,MeetingRoomRounded,LayersRounded} from '@mui/icons-material';
+import ProgramConfigurationPage from './ProgramConfigurationPage';
 
 const unwrap=(r:any)=>r?.data?.data??r?.data;
 const message=(e:any)=>e?.response?.data?.message??e?.response?.data?.error?.message??e?.message??'Request failed';
@@ -18,7 +19,7 @@ export default function AcademicsWorkspacePage(){
  const overview=useLive('/academic-configuration/overview');
  const years=useLive('/academic-years'), classes=useLive('/classes'), streams=useLive('/streams'), subjects=useLive('/subjects'), batches=useLive('/batches'), rooms=useLive('/academic-configuration/classrooms'), classStreams=useLive('/academic-configuration/class-streams'), classSubjects=useLive('/academic-configuration/class-subjects');
  const reloadAll=()=>[overview,years,classes,streams,subjects,batches,rooms,classStreams,classSubjects].forEach(x=>x.load());
- const tabs=['Structure','Classes & Streams','Subjects','Batches','Classrooms'];
+ const tabs=['Structure','Classes & Streams','Subjects','Batches','Classrooms','Programs & Exams'];
  return <Stack spacing={2.5}>
   <Stack direction={{xs:'column',md:'row'}} justifyContent="space-between" gap={1}>
    <Box><Typography sx={{fontSize:12,color:'#64748b',fontWeight:800}}>ACADEMIC CONFIGURATION</Typography><Typography sx={{fontSize:13,color:'#94a3b8',mt:.3}}>Build the institute structure once; everything else uses it.</Typography></Box>
@@ -33,6 +34,7 @@ export default function AcademicsWorkspacePage(){
   {tab===2&&<MappingTab type="subject" years={years.rows} classes={classes.rows} streams={subjects.rows} data={classSubjects.rows} reload={classSubjects.load}/>}
   {tab===3&&<BatchesTab batches={batches} years={years.rows} classes={classes.rows} streams={streams.rows}/>}
   {tab===4&&<RoomsTab rooms={rooms}/>}
+  {tab===5&&<ProgramConfigurationPage/>}
  </Stack>
 }
 
