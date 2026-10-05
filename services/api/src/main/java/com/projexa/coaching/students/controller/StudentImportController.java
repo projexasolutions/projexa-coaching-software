@@ -6,6 +6,7 @@ import com.projexa.coaching.common.exceptions.ApiException;
 import com.projexa.coaching.common.tenant.TenantContextHolder;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -29,19 +30,21 @@ public class StudentImportController {
     @PostMapping("/preview")
     @PreAuthorize("hasAuthority('students.import') or hasAuthority('settings.manage')")
     public Map<String,Object> preview(@RequestParam("file") MultipartFile file,
-                                      @RequestParam(value="mapping", required=false) String mappingJson) {
-        return process(file, mappingJson, false);
+                                      @RequestParam(value="mapping", required=false) String mappingJson,
+                                      Authentication auth) {
+        return process(file, mappingJson, false, auth);
     }
 
     @PostMapping
     @PreAuthorize("hasAuthority('students.import') or hasAuthority('settings.manage')")
     @Transactional
     public Map<String,Object> importStudents(@RequestParam("file") MultipartFile file,
-                                             @RequestParam(value="mapping", required=false) String mappingJson) {
-        return process(file, mappingJson, true);
+                                             @RequestParam(value="mapping", required=false) String mappingJson,
+                                             Authentication auth) {
+        return process(file, mappingJson, true, auth);
     }
 
-    private Map<String,Object> process(MultipartFile file, String mappingJson, boolean commit) {
+    private Map<String,Object> process(MultipartFile file, String mappingJson, boolean commit, Authentication auth) {
         if (file == null || file.isEmpty()) throw new ApiException("VALIDATION_ERROR", "CSV file is required");
         if (file.getSize() > 5 * 1024 * 1024) throw new ApiException("FILE_TOO_LARGE", "Student import CSV must be 5 MB or smaller");
         String name = Optional.ofNullable(file.getOriginalFilename()).orElse("students.csv");
@@ -89,9 +92,9 @@ public class StudentImportController {
 
         if (commit) {
             db.update("""
-                insert into student_import_runs(id,tenant_id,file_name,file_type,mode,total_rows,valid_rows,imported_rows,failed_rows,status)
-                values(?,?,?,?,?,?,?,?,?,?)
-                """, UUID.randomUUID(), tenant, name, "CSV", "IMPORT", valid.size() + errors.size(),
+                insert into student_import_runs(id,tenant_id,imported_by,file_name,file_type,mode,total_rows,valid_rows,imported_rows,failed_rows,status)
+                values(?,?,?,?,?,?,?,?,?,?,?)
+                """, UUID.randomUUID(), tenant, authenticatedUserId(auth), name, "CSV", "IMPORT", valid.size() + errors.size(),
                 valid.size(), imported, errors.size(), errors.isEmpty() ? "COMPLETED" : "COMPLETED_WITH_ERRORS");
         }
 
@@ -108,7 +111,7 @@ public class StudentImportController {
         );
     }
 
-    private boolean insertStudent(UUID tenant, Map<String,String> s) {
+    private UUID authenticatedUserId(Authentication auth) {\n        try { return UUID.fromString(auth.getName()); }\n        catch (Exception e) { throw new ApiException("UNAUTHORIZED", "Authenticated user identity is invalid"); }\n    }\n\n    private boolean insertStudent(UUID tenant, Map<String,String> s) {
         UUID id = UUID.randomUUID();
         try {
             db.update("""
