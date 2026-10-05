@@ -90,7 +90,27 @@ const money=(n:any)=>`₹${Number(n||0).toLocaleString('en-IN',{maximumFractionD
 export function LiveStudentsPage(){
  const {rows,loading,error,load}=useList('/students/operational'); const [q,setQ]=useState(''); const [open,setOpen]=useState(false);const [edit,setEdit]=useState<any>(null); const [enroll,setEnroll]=useState<any>(null);
  const filtered=useMemo(()=>rows.filter(r=>JSON.stringify(r).toLowerCase().includes(q.toLowerCase())),[rows,q]);
- return <Stack spacing={2.5}><Stack direction={{xs:'column',sm:'row'}} gap={1.5}><TextField size="small" fullWidth placeholder="Search name, admission number, phone…" value={q} onChange={e=>setQ(e.target.value)} slotProps={{input:{startAdornment:<InputAdornment position="start"><SearchRounded fontSize="small"/></InputAdornment>}}}/><Button variant="outlined" startIcon={<RefreshRounded/>} onClick={load}>Refresh</Button><Button variant="contained" startIcon={<AddRounded/>} onClick={()=>{setEdit(null);setOpen(true)}}>Add student</Button></Stack><Card elevation={0} sx={{border:'1px solid #e5e7eb'}}><CardContent sx={{p:0,overflow:'auto'}}><Busy loading={loading} error={error}/>{!loading&&!error&&<Table><TableHead><TableRow>{['Admission','Student','Class / Batch','Phone','Email','Status',''].map(x=><TableCell key={x} sx={{fontWeight:900,fontSize:11}}>{x}</TableCell>)}</TableRow></TableHead><TableBody>{filtered.map(r=><TableRow hover key={r.id}><TableCell>{r.admissionNumber}</TableCell><TableCell><Typography sx={{fontWeight:800}}>{r.firstName} {r.lastName||''}</Typography></TableCell><TableCell>{r.className?`${r.className} • ${r.batchName||'No batch'}`:'Not enrolled'}</TableCell><TableCell>{r.phone||'—'}</TableCell><TableCell>{r.email||'—'}</TableCell><TableCell><Chip size="small" label={r.status} color={r.status==='ACTIVE'?'success':'default'} variant="outlined"/></TableCell><TableCell align="right"><Button size="small" onClick={()=>setEnroll(r)}>Enroll</Button><IconButton onClick={()=>{setEdit(r);setOpen(true)}}><EditRounded fontSize="small"/></IconButton><IconButton color="error" onClick={async()=>{if(confirm('Archive this student?')){await api.delete(`/students/${r.id}`);load()}}}><DeleteOutlineRounded fontSize="small"/></IconButton></TableCell></TableRow>)}{!filtered.length&&<TableRow><TableCell colSpan={7}><Typography sx={{py:5,textAlign:'center',color:'text.secondary'}}>No students found.</Typography></TableCell></TableRow>}</TableBody></Table>}</CardContent></Card><StudentDialog open={open} initial={edit} onClose={()=>setOpen(false)} onSaved={()=>{setOpen(false);load()}}/><EnrollmentDialog open={!!enroll} student={enroll} onClose={()=>setEnroll(null)} onSaved={()=>{setEnroll(null);load()}}/></Stack>
+ return <Stack spacing={2.5}><Stack direction={{xs:'column',sm:'row'}} gap={1.5}><TextField size="small" fullWidth placeholder="Search name, admission number, phone…" value={q} onChange={e=>setQ(e.target.value)} slotProps={{input:{startAdornment:<InputAdornment position="start"><SearchRounded fontSize="small"/></InputAdornment>}}}/><Button variant="outlined" startIcon={<RefreshRounded/>} onClick={load}>Refresh</Button><Button variant="contained" startIcon={<AddRounded/>} onClick={()=>{setEdit(null);setOpen(true)}}>Add student</Button></Stack><Card elevation={0} sx={{border:'1px solid #e5e7eb'}}><CardContent sx={{p:0,overflow:'auto'}}><Busy loading={loading} error={error}/>{!loading&&!error&&<Table><TableHead><TableRow>{['Admission','Student','Class / Batch','Phone','Email','Status',''].map(x=><TableCell key={x} sx={{fontWeight:900,fontSize:11}}>{x}</TableCell>)}</TableRow></TableHead><TableBody>{filtered.map(r=>{
+ const admission=r.admissionNumber??r.admission_number??'—';
+ const first=r.firstName??r.first_name??'';
+ const last=r.lastName??r.last_name??'';
+ const className=r.className??r.class_name;
+ const batchName=r.batchName??r.batch_name;
+ const status=r.status??'ACTIVE';
+ return <TableRow hover key={r.id}>
+  <TableCell><Typography sx={{fontWeight:750}}>{admission}</Typography></TableCell>
+  <TableCell><Typography sx={{fontWeight:800}}>{first} {last}</Typography></TableCell>
+  <TableCell>{className?className+' • '+(batchName||'No batch'):'Not enrolled'}</TableCell>
+  <TableCell>{r.phone||'—'}</TableCell>
+  <TableCell>{r.email||'—'}</TableCell>
+  <TableCell><Chip size="small" label={status} color={status==='ACTIVE'?'success':'default'} variant="outlined"/></TableCell>
+  <TableCell align="right">
+   <Button size="small" onClick={()=>setEnroll(r)}>Enroll</Button>
+   <IconButton onClick={()=>{setEdit(r);setOpen(true)}}><EditRounded/></IconButton>
+   <IconButton color="error" onClick={async()=>{if(confirm('Archive this student?')){await api.delete(`/students/${r.id}`);load()}}}><DeleteOutlineRounded/></IconButton>
+  </TableCell>
+ </TableRow>
+})}</TableBody></Table>}</CardContent></Card><StudentDialog open={open} initial={edit} onClose={()=>setOpen(false)} onSaved={()=>{setOpen(false);load()}}/><EnrollmentDialog open={!!enroll} student={enroll} onClose={()=>setEnroll(null)} onSaved={()=>{setEnroll(null);load()}}/></Stack>
 }
 
 function StudentDialog({open,initial,onClose,onSaved}:{open:boolean;initial:any;onClose:()=>void;onSaved:()=>void}){
