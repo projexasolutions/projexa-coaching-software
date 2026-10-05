@@ -77,7 +77,7 @@ public class ExamEngineController {
   private boolean grade(String type,String answer,List<Map<String,Object>> options){
     String a=answer.trim();
     if(type.equals("MCQ_SINGLE")||type.equals("TRUE_FALSE")) return options.stream().anyMatch(o->Boolean.TRUE.equals(o.get("is_correct")) && a.equalsIgnoreCase(String.valueOf(o.get("option_text"))));
-    if(type.equals("MCQ_MULTIPLE")||type.equals("MATCHING")){Set<String> given=new TreeSet<>(String.CASE_INSENSITIVE_ORDER);given.addAll(Arrays.asList(a.split(",")));Set<String> correct=new TreeSet<>(String.CASE_INSENSITIVE_ORDER);options.stream().filter(o->Boolean.TRUE.equals(o.get("is_correct"))).forEach(o->correct.add(String.valueOf(o.get("option_text"))));return given.equals(correct);}
+    if(type.equals("MCQ_MULTI")||type.equals("MATCH")){Set<String> given=new TreeSet<>(String.CASE_INSENSITIVE_ORDER);given.addAll(Arrays.asList(a.split(",")));Set<String> correct=new TreeSet<>(String.CASE_INSENSITIVE_ORDER);options.stream().filter(o->Boolean.TRUE.equals(o.get("is_correct"))).forEach(o->correct.add(String.valueOf(o.get("option_text"))));return given.equals(correct);}
     if(type.equals("FILL_BLANK")) return options.stream().filter(o->Boolean.TRUE.equals(o.get("is_correct"))).anyMatch(o->a.equalsIgnoreCase(String.valueOf(o.get("option_text"))));
     return false;
   }
