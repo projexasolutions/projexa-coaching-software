@@ -65,6 +65,29 @@ public class ExamEngineController {
     return ResponseEntity.ok(Map.of("attemptId",attemptId,"score",total,"status","SUBMITTED"));
   }
 
+  @GetMapping("/{examId}/attempts/{attemptId}")
+  @PreAuthorize("hasRole('STUDENT')")
+  public Map<String,Object> attempt(@PathVariable UUID examId,@PathVariable UUID attemptId,Authentication auth){
+    UUID tenant=TenantContextHolder.getRequired();
+    Map<String,Object> a;
+    try{
+      a=db.queryForMap("select id,exam_id,student_id,started_at,submitted_at,score,status from exam_attempts where id=? and exam_id=? and tenant_id=?",attemptId,examId,tenant);
+    }catch(Exception e){throw new IllegalArgumentException("Attempt not found");}
+    UUID studentId=(UUID)a.get("student_id"); access.requireOwnStudent(tenant,studentId,auth);
+    Map<String,Object> exam=exam(examId,tenant);
+    List<Map<String,Object>> questions=db.queryForList("""
+      select q.id,q.subject_id,q.text,q.question_type,q.marks,eq.display_order
+      from exam_questions eq join questions q on q.id=eq.question_id and q.tenant_id=eq.tenant_id
+      where eq.exam_id=? and eq.tenant_id=? order by eq.display_order
+      """,examId,tenant);
+    for(Map<String,Object> q:questions){
+      q.put("options",db.queryForList("select id,option_text,display_order from question_options where question_id=? order by display_order",q.get("id")));
+    }
+    Map<String,Object> response=new LinkedHashMap<>();
+    response.put("attempt",a); response.put("exam",exam); response.put("questions",questions);
+    return response;
+  }
+
   @GetMapping("/{examId}/analysis")
   @PreAuthorize("hasAnyRole('INSTITUTE_OWNER','INSTITUTE_ADMIN','TEACHER')")
   public Map<String,Object> analysis(@PathVariable UUID examId){
