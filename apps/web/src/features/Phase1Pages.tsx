@@ -95,8 +95,43 @@ export function LiveStudentsPage(){
 
 function StudentDialog({open,initial,onClose,onSaved}:{open:boolean;initial:any;onClose:()=>void;onSaved:()=>void}){
  const [form,setForm]=useState<any>({admissionNumber:'',firstName:'',lastName:'',phone:'',email:'',dateOfBirth:'',gender:'',address:'',status:'ACTIVE'});const [saving,setSaving]=useState(false);const [error,setError]=useState('');
- useEffect(()=>{setForm(initial?{...initial,dateOfBirth:initial.dateOfBirth||''}:{admissionNumber:'',firstName:'',lastName:'',phone:'',email:'',dateOfBirth:'',gender:'',address:'',status:'ACTIVE'});setError('')},[initial,open]);
- const save=async()=>{setSaving(true);setError('');try{if(initial)await api.put(`/students/${initial.id}`,form);else await api.post('/students',form);onSaved()}catch(e){setError(err(e))}finally{setSaving(false)}};const f=(k:string)=>(e:any)=>setForm((x:any)=>({...x,[k]:e.target.value}));
+ useEffect(()=>{
+  if(initial){
+    setForm({
+      admissionNumber: initial.admissionNumber ?? initial.admission_number ?? '',
+      firstName: initial.firstName ?? initial.first_name ?? '',
+      lastName: initial.lastName ?? initial.last_name ?? '',
+      phone: initial.phone ?? '',
+      email: initial.email ?? '',
+      dateOfBirth: initial.dateOfBirth ?? initial.date_of_birth ?? '',
+      gender: initial.gender ?? '',
+      address: initial.address ?? '',
+      status: initial.status ?? 'ACTIVE'
+    });
+  }else{
+    setForm({admissionNumber:'',firstName:'',lastName:'',phone:'',email:'',dateOfBirth:'',gender:'',address:'',status:'ACTIVE'});
+  }
+  setError('')
+},[initial,open]);
+ const save=async()=>{
+  setSaving(true);setError('');
+  try{
+    const payload={
+      admissionNumber:String(form.admissionNumber??'').trim(),
+      firstName:String(form.firstName??'').trim(),
+      lastName:String(form.lastName??'').trim()||null,
+      phone:String(form.phone??'').trim()||null,
+      email:String(form.email??'').trim()||null,
+      dateOfBirth:form.dateOfBirth||null,
+      gender:String(form.gender??'').trim()||null,
+      address:String(form.address??'').trim()||null,
+      status:form.status||'ACTIVE'
+    };
+    if(!payload.admissionNumber||!payload.firstName){setError('Admission number and first name are required.');return;}
+    if(initial) await api.put(`/students/${initial.id}`,payload); else await api.post('/students',payload);
+    onSaved();
+  }catch(e){setError(err(e))}finally{setSaving(false)}
+};const f=(k:string)=>(e:any)=>setForm((x:any)=>({...x,[k]:e.target.value}));
  return <Dialog open={open} onClose={onClose} fullWidth maxWidth="md"><DialogTitle>{initial?'Edit student':'Add student'}</DialogTitle><DialogContent><Stack spacing={2} mt={1}>{error&&<Alert severity="error">{error}</Alert>}<Box sx={{display:'grid',gridTemplateColumns:{xs:'1fr',sm:'1fr 1fr'},gap:2}}>{[['admissionNumber','Admission number'],['firstName','First name'],['lastName','Last name'],['phone','Phone'],['email','Email'],['dateOfBirth','Date of birth'],['gender','Gender'],['address','Address']].map(([k,l])=><TextField key={k} label={l} value={form[k]||''} onChange={f(k)} type={k==='dateOfBirth'?'date':'text'} slotProps={k==='dateOfBirth'?{inputLabel:{shrink:true}}:undefined}/>)}</Box><Select value={form.status} onChange={f('status')}><MenuItem value="ACTIVE">Active</MenuItem><MenuItem value="INACTIVE">Inactive</MenuItem><MenuItem value="WITHDRAWN">Withdrawn</MenuItem></Select></Stack></DialogContent><DialogActions><Button onClick={onClose}>Cancel</Button><Button variant="contained" onClick={save} disabled={saving}>{saving?'Saving…':'Save student'}</Button></DialogActions></Dialog>
 }
 
