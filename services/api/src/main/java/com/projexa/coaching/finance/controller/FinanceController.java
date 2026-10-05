@@ -83,7 +83,6 @@ public class FinanceController {
     db.update("update invoices set paid_amount=paid_amount+?,status=case when paid_amount+?>=amount then 'PAID' else 'PARTIALLY_PAID' end where id=? and tenant_id=?",amount,amount,invoiceId,t);
     return Map.of("paymentId",paymentId,"invoiceId",invoiceId,"status","SUCCESS","verified",true);
   }
-  }
 
   @GetMapping("/payments/pending")
   @PreAuthorize("hasAuthority('finance.manage') or hasAnyRole('INSTITUTE_OWNER','INSTITUTE_ADMIN')")
