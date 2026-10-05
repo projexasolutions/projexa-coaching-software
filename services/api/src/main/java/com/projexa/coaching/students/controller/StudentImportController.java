@@ -55,9 +55,6 @@ public class StudentImportController {
         List<String> headers = rows.get(0).stream().map(this::normalizeHeader).toList();
         if (headers.stream().anyMatch(String::isBlank)) throw new ApiException("VALIDATION_ERROR", "CSV contains an empty header");
         if (new HashSet<>(headers).size() != headers.size()) throw new ApiException("VALIDATION_ERROR", "CSV contains duplicate column headers");
-        if (!headers.contains(normalizeHeader("admissionNumber")) || !headers.contains(normalizeHeader("firstName"))) {
-            throw new ApiException("VALIDATION_ERROR", "CSV must contain admissionNumber and firstName columns");
-        }
         List<Map<String,Object>> errors = new ArrayList<>();
         List<Map<String,String>> valid = new ArrayList<>();
         Set<String> seenAdmissions = new HashSet<>();
