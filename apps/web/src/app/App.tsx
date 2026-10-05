@@ -144,6 +144,28 @@ function Page({title,subtitle,children}:{title:string;subtitle:string;children:R
 }
 
 function Guard({children}:{children:ReactNode}){return useAuth(s=>s.session)?children:<Navigate to="/login" replace/>}
+function PortalGuard({children}:{children:ReactNode}){
+ const session=useAuth(s=>s.session);
+ const portalRoles=['STUDENT','PARENT'];
+ return session&&session.roles.some(r=>portalRoles.includes(r))?children:<Navigate to="/owner" replace/>;
+}
+function PortalShell({children}:{children:ReactNode}){
+ const session=useAuth(s=>s.session),logout=useAuth(s=>s.logout);
+ return <Box sx={{minHeight:'100vh',bgcolor:'#f6f8fb'}}>
+  <AppBar position="sticky" elevation={0} color="inherit" sx={{bgcolor:'rgba(255,255,255,.94)',backdropFilter:'blur(14px)',borderBottom:'1px solid #e8edf3'}}>
+   <Toolbar sx={{minHeight:'64px !important',px:{xs:1.5,md:3},gap:1.5}}>
+    <Box sx={{width:36,height:36,borderRadius:2.25,display:'grid',placeItems:'center',bgcolor:'#0f766e',color:'#fff',fontWeight:900}}>P</Box>
+    <Box sx={{flex:1,minWidth:0}}>
+     <Typography noWrap sx={{fontWeight:950,fontSize:15,letterSpacing:-.4}}>PROJEXA</Typography>
+     <Typography noWrap sx={{fontSize:9.5,color:'#94a3b8',fontWeight:850,letterSpacing:1.2}}>STUDENT PORTAL</Typography>
+    </Box>
+    <Typography sx={{display:{xs:'none',sm:'block'},fontSize:12,color:'#64748b'}}>{session?.firstName} {session?.lastName||''}</Typography>
+    <Button size="small" variant="outlined" onClick={logout} startIcon={<LogoutRounded/>}>Sign out</Button>
+   </Toolbar>
+  </AppBar>
+  <Box sx={{px:{xs:1.5,sm:2.5,md:4},py:{xs:2,md:3.5},maxWidth:1280,mx:'auto'}}>{children}</Box>
+ </Box>;
+}
 function PlatformGuard({children}:{children:ReactNode}){const session=useAuth(s=>s.session);return session?.roles?.includes('PLATFORM_ADMIN')?children:<Navigate to="/owner" replace/>}
 function Profile(){const {id}=useParams();return <LiveStudentProfile id={id||''}/>}
 
@@ -163,7 +185,7 @@ export default function App(){return <BrowserRouter><Routes>
  <Route path="/owner/exams" element={<Guard><Shell><Page title="Exams & Results" subtitle="Build exams, configure subjects and manage question sets."><ExamsPage/></Page></Shell></Guard>}/>
  <Route path="/owner/results" element={<Guard><Shell><Page title="Results & Analytics" subtitle="Generate, publish and analyze examination performance."><ResultsPage/></Page></Shell></Guard>}/>
  <Route path="/owner/intelligence" element={<Guard><Shell><Page title="AI Intelligence" subtitle="Prioritize institute risks and learning opportunities from operational data."><IntelligencePage/></Page></Shell></Guard>}/>
- <Route path="/portal" element={<Guard><Shell><Page title="Parent / Student Portal" subtitle="Attendance, fees, results and homework in one workspace."><PortalPage/></Page></Shell></Guard>}/>
+ <Route path="/portal" element={<PortalGuard><PortalShell><Page title="My Learning" subtitle="Your attendance, fees, results and homework in one workspace."><PortalPage/></Page></PortalShell></PortalGuard>}/>\n <Route path="/student" element={<Navigate to="/portal" replace/>}/>
  <Route path="/owner/communication" element={<Guard><Shell><Page title="Communication" subtitle="Internal conversations and institute communication workspace."><CommunicationPage/></Page></Shell></Guard>}/>
  <Route path="/owner/admissions" element={<Guard><Shell><Page title="Admissions CRM" subtitle="Manage enquiries, counselling, demos, follow-ups and conversions."><AdmissionsPage/></Page></Shell></Guard>}/>
  <Route path="/owner/reports" element={<Guard><Shell><Page title="Reports" subtitle="Institute performance, collections and attendance reporting."><ReportsPage/></Page></Shell></Guard>}/>
