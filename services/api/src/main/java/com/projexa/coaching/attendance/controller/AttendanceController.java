@@ -28,6 +28,7 @@ public class AttendanceController {
 
   @PostMapping("/sessions")
   @PreAuthorize("hasAuthority('attendance.manage')")
+  @org.springframework.transaction.annotation.Transactional
   public Map<String,Object> createSession(@RequestBody SessionRequest req){
     UUID t=TenantContextHolder.getRequired();
     validateSession(req);
@@ -79,10 +80,14 @@ public class AttendanceController {
 
   @PostMapping("/sessions/{sessionId}/records/bulk")
   @PreAuthorize("hasAuthority('attendance.manage')")
+  @org.springframework.transaction.annotation.Transactional
   public Map<String,Object> bulk(@PathVariable UUID sessionId,@RequestBody BulkRequest req){
     UUID t=TenantContextHolder.getRequired(); UUID batchId=batchId(sessionId,t); ensureOpen(sessionId,t);
-    if(req==null || req.records()==null) throw new IllegalArgumentException("Attendance records are required");
+    if(req==null || req.records()==null || req.records().isEmpty()) throw new IllegalArgumentException("Attendance records are required");
+    Set<UUID> seen=new HashSet<>();
     for(RecordItem item:req.records()){
+      if(item!=null && item.studentId()!=null && !seen.add(item.studentId()))
+        throw new IllegalArgumentException("Duplicate student in attendance payload: "+item.studentId());
       if(item==null || item.studentId()==null) throw new IllegalArgumentException("Student id is required");
       validateStatus(item.status());
       if(count("select count(*) from enrollments where tenant_id=? and student_id=? and batch_id=? and status='ACTIVE'",t,item.studentId(),batchId)==0)
