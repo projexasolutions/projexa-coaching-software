@@ -13,17 +13,76 @@ function useList(endpoint:string){
  useEffect(()=>{load();},[endpoint]); return {rows,loading,error,load,setRows};
 }
 function Busy({loading,error}:{loading:boolean;error:string}){if(loading)return <Typography sx={{color:'text.secondary',py:4,textAlign:'center'}}>Loading live data…</Typography>;if(error)return <Alert severity="error">{error}</Alert>;return null;}
-function Stat({label,value,caption,icon:Icon}:{label:string;value:any;caption?:string;icon:any}){return <Card elevation={0} sx={{border:'1px solid #e5e7eb',borderRadius:3}}><CardContent><Icon sx={{fontSize:20,color:'#0f766e'}}/><Typography sx={{fontSize:12,color:'text.secondary',mt:1}}>{label}</Typography><Typography sx={{fontSize:26,fontWeight:900}}>{value}</Typography>{caption&&<Typography sx={{fontSize:11,color:'text.secondary'}}>{caption}</Typography>}</CardContent></Card>}
+function Stat({label,value,caption,icon:Icon,trend}:{label:string;value:any;caption?:string;icon:any;trend?:string}){
+ return <Card sx={{height:'100%',position:'relative',overflow:'hidden'}}>
+  <CardContent sx={{p:{xs:2,md:2.5}}}>
+   <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+    <Box sx={{width:38,height:38,borderRadius:2.2,bgcolor:'#e8f8f5',color:'#0f766e',display:'grid',placeItems:'center'}}><Icon sx={{fontSize:19}}/></Box>
+    {trend&&<Chip size="small" label={trend} sx={{bgcolor:'#f0fdf4',color:'#15803d',fontSize:10}}/>}
+   </Stack>
+   <Typography sx={{fontSize:12,color:'#64748b',mt:2}}>{label}</Typography>
+   <Typography sx={{fontSize:{xs:24,md:28},fontWeight:950,letterSpacing:-.8,mt:.25}}>{value}</Typography>
+   {caption&&<Typography sx={{fontSize:11,color:'#94a3b8',mt:.35}}>{caption}</Typography>}
+  </CardContent>
+ </Card>
+}
 
 export function LiveDashboard(){
  const [data,setData]=useState<any>({}),[loading,setLoading]=useState(true),[error,setError]=useState('');
  const load=async()=>{setLoading(true);try{setData(unwrap(await api.get('/dashboard/summary'))||{});setError('')}catch(e){setError(err(e))}finally{setLoading(false)}};useEffect(()=>{load()},[]);
- if(error)return <Alert severity="error">{error}</Alert>;
- return <Stack spacing={2.5}><Stack direction="row" justifyContent="flex-end"><Button variant="outlined" startIcon={<RefreshRounded/>} onClick={load}>Refresh</Button></Stack>
- {loading?<Card><CardContent><Typography sx={{py:8,textAlign:'center'}}>Loading institute command center…</Typography></CardContent></Card>:<>
- <Box sx={{display:'grid',gridTemplateColumns:{xs:'1fr 1fr',lg:'repeat(4,1fr)'},gap:2}}><Stat label="Active Students" value={data.students??0} caption="Current tenant" icon={PeopleRounded}/><Stat label="Today's Attendance" value={`${data.attendance??0}%`} caption={`${data.todaySessions??0} sessions`} icon={EventAvailableRounded}/><Stat label="Collected" value={money(data.collected)} caption="All recorded invoices" icon={PaymentsRounded}/><Stat label="Outstanding" value={money(data.outstanding)} caption={`${data.overdue??0} overdue invoices`} icon={TrendingUpRounded}/></Box>
- <Box sx={{display:'grid',gridTemplateColumns:{xs:'1fr',lg:'1.3fr .7fr'},gap:2}}><Card elevation={0} sx={{border:'1px solid #e5e7eb'}}><CardContent><Typography sx={{fontWeight:900}}>Recent payments</Typography><Typography sx={{fontSize:12,color:'text.secondary',mb:2}}>Live payment ledger</Typography><Table size="small"><TableHead><TableRow><TableCell>Student</TableCell><TableCell>Invoice</TableCell><TableCell align="right">Amount</TableCell><TableCell>Status</TableCell></TableRow></TableHead><TableBody>{(data.recentPayments||[]).map((p:any)=><TableRow key={p.id}><TableCell>{p.first_name} {p.last_name||''}</TableCell><TableCell>{p.invoice_number}</TableCell><TableCell align="right">{money(p.amount)}</TableCell><TableCell><Chip size="small" label="SUCCESS" color="success" variant="outlined"/></TableCell></TableRow>)}{!(data.recentPayments||[]).length&&<TableRow><TableCell colSpan={4}>No payments recorded yet.</TableCell></TableRow>}</TableBody></Table></CardContent></Card>
- <Card elevation={0} sx={{border:'1px solid #e5e7eb'}}><CardContent><Typography fontWeight={900}>Institute health</Typography><Stack spacing={1.2} mt={2}>{[['Active batches',data.batches],['Open alerts',data.alerts],['Overdue invoices',data.overdue]].map(([a,b])=><Stack key={a as string} direction="row" justifyContent="space-between" p={1.3} sx={{bgcolor:'#f8fafc',borderRadius:2}}><Typography sx={{fontSize:13}}>{a as string}</Typography><Typography sx={{fontWeight:900}}>{b as any}</Typography></Stack>)}</Stack></CardContent></Card></Box></>}</Stack>
+ if(error)return <Alert severity="error" sx={{borderRadius:3}}>{error}</Alert>;
+ return <Stack spacing={2.5}>
+  <Stack direction={{xs:'column',sm:'row'}} justifyContent="space-between" alignItems={{sm:'center'}} gap={1}>
+   <Box><Typography sx={{fontSize:12,color:'#94a3b8',fontWeight:700}}>TODAY AT A GLANCE</Typography><Typography sx={{fontSize:13,color:'#64748b',mt:.25}}>Monitor the institute from one place.</Typography></Box>
+   <Button variant="outlined" startIcon={<RefreshRounded/>} onClick={load} sx={{alignSelf:{xs:'stretch',sm:'auto'}}}>Refresh data</Button>
+  </Stack>
+  {loading?<Card><CardContent><Typography sx={{py:8,textAlign:'center',color:'#64748b'}}>Loading institute command center…</Typography></CardContent></Card>:<>
+   <Box sx={{display:'grid',gridTemplateColumns:{xs:'1fr 1fr',lg:'repeat(4,1fr)'},gap:1.75}}>
+    <Stat label="Active Students" value={data.students??0} caption="Current tenant" icon={PeopleRounded} trend="LIVE"/>
+    <Stat label="Today's Attendance" value={`${data.attendance??0}%`} caption={`${data.todaySessions??0} sessions today`} icon={EventAvailableRounded}/>
+    <Stat label="Collected" value={money(data.collected)} caption="Across recorded invoices" icon={PaymentsRounded}/>
+    <Stat label="Outstanding" value={money(data.outstanding)} caption={`${data.overdue??0} overdue invoices`} icon={TrendingUpRounded}/>
+   </Box>
+   <Box sx={{display:'grid',gridTemplateColumns:{xs:'1fr',lg:'minmax(0,1.45fr) minmax(300px,.75fr)'},gap:1.75}}>
+    <Card>
+     <CardContent sx={{p:0}}>
+      <Box sx={{px:{xs:2,md:2.5},py:2.25,borderBottom:'1px solid #edf1f5'}}>
+       <Typography sx={{fontWeight:900,fontSize:15}}>Recent payments</Typography>
+       <Typography sx={{fontSize:11.5,color:'#94a3b8',mt:.35}}>Latest activity from your payment ledger</Typography>
+      </Box>
+      <Box sx={{overflowX:'auto'}}>
+       <Table size="small">
+        <TableHead><TableRow><TableCell>Student</TableCell><TableCell>Invoice</TableCell><TableCell align="right">Amount</TableCell><TableCell>Status</TableCell></TableRow></TableHead>
+        <TableBody>
+         {(data.recentPayments||[]).map((p:any)=><TableRow hover key={p.id}>
+          <TableCell><Typography sx={{fontWeight:750,fontSize:13}}>{p.first_name} {p.last_name||''}</Typography></TableCell>
+          <TableCell sx={{color:'#64748b'}}>{p.invoice_number}</TableCell>
+          <TableCell align="right"><Typography sx={{fontWeight:850}}>{money(p.amount)}</Typography></TableCell>
+          <TableCell><Chip size="small" label="SUCCESS" color="success" variant="outlined"/></TableCell>
+         </TableRow>)}
+         {!(data.recentPayments||[]).length&&<TableRow><TableCell colSpan={4}><Typography sx={{py:4,textAlign:'center',color:'#94a3b8'}}>No payments recorded yet.</Typography></TableCell></TableRow>}
+        </TableBody>
+       </Table>
+      </Box>
+     </CardContent>
+    </Card>
+    <Card>
+     <CardContent sx={{p:{xs:2,md:2.5}}}>
+      <Typography sx={{fontWeight:900,fontSize:15}}>Institute health</Typography>
+      <Typography sx={{fontSize:11.5,color:'#94a3b8',mt:.35,mb:2}}>Key operational indicators</Typography>
+      <Stack spacing={1}>
+       {[['Active batches',data.batches,'Batches currently running'],['Open alerts',data.alerts,'Needs attention'],['Overdue invoices',data.overdue,'Requires follow-up']].map(([a,b,c])=>
+        <Box key={a as string} sx={{p:1.4,bgcolor:'#f8fafc',border:'1px solid #eef2f6',borderRadius:2.25}}>
+         <Stack direction="row" justifyContent="space-between" alignItems="center"><Typography sx={{fontSize:12.5,fontWeight:700}}>{a as string}</Typography><Typography sx={{fontWeight:950,fontSize:17}}>{b as any}</Typography></Stack>
+         <Typography sx={{fontSize:10.5,color:'#94a3b8',mt:.3}}>{c as string}</Typography>
+        </Box>
+       )}
+      </Stack>
+     </CardContent>
+    </Card>
+   </Box>
+  </>}
+ </Stack>
 }
 
 const money=(n:any)=>`₹${Number(n||0).toLocaleString('en-IN',{maximumFractionDigits:2})}`;
