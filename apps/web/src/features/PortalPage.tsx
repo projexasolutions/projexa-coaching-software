@@ -1,6 +1,6 @@
 import {useEffect,useMemo,useState} from 'react';
 import {Alert,Avatar,Box,Button,Card,CardContent,Checkbox,Chip,Dialog,DialogActions,DialogContent,DialogTitle,Divider,FormControlLabel,LinearProgress,MenuItem,Radio,RadioGroup,Select,Stack,Tab,Tabs,TextField,Typography} from '@mui/material';
-import {AssignmentRounded,EventAvailableRounded,NotificationsRounded,PaymentsRounded,QuizRounded,SchoolRounded,CalendarMonthRounded,ArrowForwardRounded,CheckCircleRounded,ScheduleRounded,AccessTimeRounded} from '@mui/icons-material';
+import {AssignmentRounded,EventAvailableRounded,NotificationsRounded,PaymentsRounded,QuizRounded,SchoolRounded,CalendarMonthRounded,ArrowForwardRounded,CheckCircleRounded,ScheduleRounded,AccessTimeRounded,TodayRounded,CampaignRounded} from '@mui/icons-material';
 import {api} from '../services';
 import {useAuth} from './auth/authStore';
 
@@ -9,6 +9,9 @@ const money=(n:any)=>'₹'+Number(n||0).toLocaleString('en-IN',{maximumFractionD
 const date=(v:any)=>v?new Date(v).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}):'—';
 const dateTime=(v:any)=>v?new Date(v).toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'—';
 const dayName=(n:any)=>['','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'][Number(n)]||'—';
+const todayIndex=()=>{const d=new Date().getDay();return d===0?7:d};
+const greeting=()=>{const h=new Date().getHours();return h<12?'Good morning':h<17?'Good afternoon':'Good evening'};
+const asMinutes=(v:any)=>{if(!v)return 0;const [h,m]=String(v).split(':').map(Number);return (h||0)*60+(m||0)};
 
 export default function PortalPage(){
  const session=useAuth(s=>s.session);
@@ -30,7 +33,8 @@ export default function PortalPage(){
  if(error&&!data)return <Alert severity="error" sx={{borderRadius:3}}>{error}</Alert>;
  if(!children.length)return <Empty title="No linked student profile" text="Your institute has not linked a student to this portal account yet."/>;
 
- return <Stack spacing={2.25}>
+ return <Stack spacing={2.25} sx={{width:'100%',maxWidth:1440,mx:'auto',pb:3}}>
+  <WelcomeHeader data={data}/>
   <Hero data={data} childrenRows={children} id={id} setId={setId} isStudent={isStudent}/>
   {error&&<Alert severity="warning" onClose={()=>setError('')}>{error}</Alert>}
   <Tabs value={tab} onChange={(_,v)=>setTab(v)} variant="scrollable" allowScrollButtonsMobile sx={{bgcolor:'#fff',border:'1px solid #e8edf3',borderRadius:2.5,px:1}}>
@@ -69,33 +73,77 @@ function Hero({data,childrenRows,id,setId,isStudent}:{data:any;childrenRows:any[
  </Card>
 }
 
+function WelcomeHeader({data}:{data:any}){
+ const s=data?.student;const now=new Date();
+ const label=now.toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+ return <Stack direction={{xs:'column',sm:'row'}} justifyContent="space-between" alignItems={{sm:'flex-end'}} spacing={1}>
+  <Box><Typography sx={{fontSize:{xs:23,md:28},fontWeight:950,letterSpacing:-.8,color:'#0f172a'}}>{greeting()}{s?.first_name?', '+s.first_name:''} 👋</Typography><Typography sx={{fontSize:13,color:'#64748b',mt:.35}}>Here's your learning overview for today.</Typography></Box>
+  <Chip icon={<TodayRounded/>} label={label} variant="outlined" sx={{alignSelf:{xs:'flex-start',sm:'auto'},bgcolor:'#fff',borderColor:'#e2e8f0',fontWeight:700}}/>
+ </Stack>
+}
 function Overview({data,setTab}:{data:any;setTab:(n:number)=>void}){
- const att=(data.attendance||[]).reduce((a:any,x:any)=>a+Number(x.total||0),0), present=(data.attendance||[]).find((x:any)=>String(x.status).toUpperCase()==='PRESENT')?.total||0;
- const pct=att?Math.round(Number(present)/att*100):0;
+ const attendance=data.attendance||[],total=attendance.reduce((a:any,x:any)=>a+Number(x.total||0),0),present=Number(attendance.find((x:any)=>String(x.status).toUpperCase()==='PRESENT')?.total||0);
+ const pct=total?Math.round(present/total*100):null;
  const due=(data.fees||[]).reduce((a:any,x:any)=>a+Math.max(Number(x.balance??(Number(x.amount||0)-Number(x.paid_amount||0))),0),0);
- const pending=(data.homework||[]).filter((x:any)=>!['SUBMITTED','GRADED'].includes(String(x.submission_status).toUpperCase())).length;
- return <Stack spacing={2.25}>
-  <Box sx={{display:'grid',gridTemplateColumns:{xs:'1fr 1fr',md:'repeat(4,1fr)'},gap:1.5}}>
-   <Kpi icon={EventAvailableRounded} label="Attendance" value={pct+'%'} sub={att+' records'}/>
-   <Kpi icon={AssignmentRounded} label="Homework" value={pending} sub="pending"/>
-   <Kpi icon={QuizRounded} label="Results" value={(data.results||[]).length} sub="published"/>
-   <Kpi icon={PaymentsRounded} label="Fees due" value={money(due)} sub="outstanding"/>
+ const pending=(data.homework||[]).filter((x:any)=>!['SUBMITTED','GRADED'].includes(String(x.submission_status).toUpperCase()));
+ const today=todayIndex();
+ const todayClasses=(data.timetable||[]).filter((x:any)=>Number(x.day_of_week)===today).sort((a:any,b:any)=>asMinutes(a.start_time)-asMinutes(b.start_time));
+ const upcoming=(data.exams||[]).filter((x:any)=>!x.starts_at||new Date(x.starts_at)>=new Date()).sort((a:any,b:any)=>new Date(a.starts_at||0).getTime()-new Date(b.starts_at||0).getTime()).slice(0,3);
+ const latest=(data.results||[]).slice(0,3),updates=(data.notifications||[]).slice(0,3),p=data.enrollment||{};
+ return <Stack spacing={2}>
+  <Box sx={{display:'grid',gridTemplateColumns:{xs:'repeat(2,minmax(0,1fr))',lg:'repeat(4,minmax(0,1fr))'},gap:1.5}}>
+   <Kpi icon={EventAvailableRounded} label="Attendance" value={pct===null?'—':pct+'%'} sub={total?present+' of '+total+' sessions present':'No attendance recorded'}/>
+   <Kpi icon={AssignmentRounded} label="Homework" value={pending.length} sub={pending.length?'Needs your attention':'All assigned work is up to date'}/>
+   <Kpi icon={QuizRounded} label="Results" value={data.results?.length||0} sub={data.results?.length?'Published results':'No results published yet'}/>
+   <Kpi icon={PaymentsRounded} label="Fees due" value={money(due)} sub={due>0?'Outstanding balance':'No outstanding balance'}/>
   </Box>
-  <Box sx={{display:'grid',gridTemplateColumns:{xs:'1fr',md:'1.25fr .75fr'},gap:1.5}}>
-   <Card><CardContent><SectionTitle title="Continue learning" text="Jump directly to what needs your attention."/>
+  <Box sx={{display:'grid',gridTemplateColumns:{xs:'1fr',lg:'1.2fr .8fr'},gap:1.5}}>
+   <Card><CardContent sx={{p:{xs:2,md:2.5}}}><SectionTitle title="Today's schedule" text={todayClasses.length?'Your classes planned for today':'Your batch timetable at a glance'}/>
+    {todayClasses.length?<Stack divider={<Divider/>}>{todayClasses.map((x:any,i:number)=><Stack key={x.id||i} direction="row" spacing={1.5} alignItems="center" sx={{py:1.1}}>
+     <Box sx={{minWidth:74,bgcolor:'#eff8f6',borderRadius:2,p:1,textAlign:'center'}}><Typography sx={{fontSize:12,fontWeight:900,color:'#0f766e'}}>{String(x.start_time||'').slice(0,5)||'—'}</Typography><Typography sx={{fontSize:10,color:'#64748b'}}>{String(x.end_time||'').slice(0,5)}</Typography></Box>
+     <Box sx={{flex:1,minWidth:0}}><Typography sx={{fontSize:13,fontWeight:850}}>{x.subject_name||'Class session'}</Typography><Typography sx={{fontSize:11.5,color:'#64748b'}}>{x.teacher_name||'Teacher not assigned'} · {x.classroom_id||'Room not assigned'}</Typography></Box><Chip size="small" label="Class" variant="outlined"/>
+    </Stack>)}</Stack>:<EmptyInline title="No classes scheduled today" text="Your institute has not published a class for today."/>}
+    <Button size="small" endIcon={<ArrowForwardRounded/>} onClick={()=>setTab(5)} sx={{mt:1}}>View full timetable</Button>
+   </CardContent></Card>
+   <Card><CardContent sx={{p:{xs:2,md:2.5}}}><SectionTitle title="Academic profile" text="Your current enrollment details"/>
+    <Box sx={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:2}}>
+     <Row label="Academic year" value={p.academic_year_name||'—'}/><Row label="Class" value={p.class_name||'—'}/>
+     <Row label="Stream" value={p.stream_name||'—'}/><Row label="Batch" value={p.batch_name||'—'}/>
+     <Row label="Admission no." value={data.student?.admission_number||'—'}/><Row label="Enrollment" value={p.status||'Active'}/>
+    </Box>
+   </CardContent></Card>
+  </Box>
+  <Box sx={{display:'grid',gridTemplateColumns:{xs:'1fr',lg:'1fr 1fr'},gap:1.5}}>
+   <Card><CardContent sx={{p:{xs:2,md:2.5}}}><SectionTitle title="Your action center" text="A quick view of items that may need your attention."/>
     <Stack spacing={1}>
-     <ActionRow icon={AssignmentRounded} title={pending?pending+' homework item'+(pending>1?'s':'')+' pending':'Homework is up to date'} text="View assignments and submission status" onClick={()=>setTab(2)} badge={pending?String(pending):'✓'}/>
-     <ActionRow icon={EventAvailableRounded} title={pct+'% attendance'} text="Review your recent attendance history" onClick={()=>setTab(1)} badge={pct+'%'}/>
-     <ActionRow icon={QuizRounded} title={(data.exams||[]).length+' upcoming exam'+((data.exams||[]).length!==1?'s':'')} text="See exam schedule and available attempts" onClick={()=>setTab(6)} badge="View"/>
+     <ActionRow icon={AssignmentRounded} title={pending.length?pending.length+' homework item'+(pending.length>1?'s':'')+' pending':'Homework is up to date'} text={pending[0]?.due_at?'Next due '+dateTime(pending[0].due_at):'View assignments and submission status'} onClick={()=>setTab(2)} badge={pending.length?String(pending.length):'✓'}/>
+     <ActionRow icon={EventAvailableRounded} title={pct===null?'Attendance not recorded':pct+'% attendance'} text={total?'Based on '+total+' recorded sessions':'Attendance history will appear here'} onClick={()=>setTab(1)} badge={pct===null?'View':pct+'%'}/>
+     <ActionRow icon={PaymentsRounded} title={due>0?'Fee payment pending':'Fees are up to date'} text={due>0?'Outstanding '+money(due):'Review your fee statement'} onClick={()=>setTab(4)} badge={due>0?'Due':'✓'}/>
+     <ActionRow icon={QuizRounded} title={upcoming.length?upcoming.length+' upcoming exam'+(upcoming.length>1?'s':''):'No upcoming exams'} text={upcoming[0]?.starts_at?'Next: '+dateTime(upcoming[0].starts_at):'Review examination schedule'} onClick={()=>setTab(6)} badge="View"/>
     </Stack>
    </CardContent></Card>
-   <Card><CardContent><SectionTitle title="Academic profile" text="Your current enrollment"/>
-    <Stack spacing={1.25}>{[['Academic year',data.enrollment?.academic_year_name],['Class',data.enrollment?.class_name],['Stream',data.enrollment?.stream_name||'—'],['Batch',data.enrollment?.batch_name]].map(([k,v])=><Row key={k as string} label={k as string} value={v||'—'}/>)}</Stack>
+   <Card><CardContent sx={{p:{xs:2,md:2.5}}}><SectionTitle title="Upcoming examinations" text="Prepare ahead for your next assessments."/>
+    {upcoming.length?<Stack divider={<Divider/>}>{upcoming.map((x:any)=><Stack key={x.id} direction="row" spacing={1.5} alignItems="center" sx={{py:1.1}}>
+     <Box sx={{width:42,height:42,borderRadius:2,bgcolor:'#eff8f6',display:'grid',placeItems:'center',flexShrink:0}}><QuizRounded sx={{color:'#0f766e'}}/></Box>
+     <Box sx={{flex:1,minWidth:0}}><Typography sx={{fontSize:13,fontWeight:850}}>{x.name}</Typography><Typography sx={{fontSize:11.5,color:'#64748b'}}>{x.exam_type||'Examination'} · {dateTime(x.starts_at)}</Typography></Box><Chip size="small" label={x.status||'Scheduled'} variant="outlined"/>
+    </Stack>)}</Stack>:<EmptyInline title="No upcoming exams" text="New examinations will appear here when scheduled."/>}
+    <Button size="small" endIcon={<ArrowForwardRounded/>} onClick={()=>setTab(6)} sx={{mt:1}}>View all exams</Button>
+   </CardContent></Card>
+  </Box>
+  <Box sx={{display:'grid',gridTemplateColumns:{xs:'1fr',lg:'1fr 1fr'},gap:1.5}}>
+   <Card><CardContent sx={{p:{xs:2,md:2.5}}}><SectionTitle title="Recent results" text="Your latest published academic performance."/>
+    {latest.length?<Stack spacing={1.5}>{latest.map((x:any)=><Box key={x.id}><Stack direction="row" justifyContent="space-between" alignItems="center" mb={.6}><Box><Typography sx={{fontSize:12.5,fontWeight:850}}>{x.exam_name||'Assessment'}</Typography><Typography sx={{fontSize:10.5,color:'#94a3b8'}}>{date(x.published_at)}</Typography></Box><Typography sx={{fontSize:16,fontWeight:950,color:'#0f766e'}}>{x.percentage??'—'}{x.percentage!=null?'%':''}</Typography></Stack><LinearProgress variant="determinate" value={Math.max(0,Math.min(100,Number(x.percentage)||0))} sx={{height:7,borderRadius:8,bgcolor:'#edf2f7'}}/></Box>)}</Stack>:<EmptyInline title="Results will appear here" text="Your performance summary updates after results are published."/>}
+    <Button size="small" endIcon={<ArrowForwardRounded/>} onClick={()=>setTab(3)} sx={{mt:1}}>View all results</Button>
+   </CardContent></Card>
+   <Card><CardContent sx={{p:{xs:2,md:2.5}}}><SectionTitle title="Institute updates" text="Announcements and notifications from your institute."/>
+    {updates.length?<Stack divider={<Divider/>}>{updates.map((x:any)=><Stack key={x.id} direction="row" spacing={1.2} alignItems="flex-start" sx={{py:1}}>
+     <CampaignRounded sx={{color:'#0f766e',mt:.2}}/><Box sx={{flex:1,minWidth:0}}><Typography sx={{fontSize:12.5,fontWeight:850}}>{x.title}</Typography><Typography sx={{fontSize:11.5,color:'#64748b',mt:.25,display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical',overflow:'hidden'}}>{x.body||'Open to view the update.'}</Typography><Typography sx={{fontSize:10,color:'#94a3b8',mt:.5}}>{dateTime(x.created_at)}</Typography></Box>{!x.read_at&&<Chip size="small" label="New" color="success"/>}
+    </Stack>)}</Stack>:<EmptyInline title="You're all caught up" text="Important institute updates will appear here."/>}
+    <Button size="small" endIcon={<ArrowForwardRounded/>} onClick={()=>setTab(7)} sx={{mt:1}}>View notifications</Button>
    </CardContent></Card>
   </Box>
  </Stack>
 }
-
 function Attendance({data}:{data:any}){
  const total=(data.attendance||[]).reduce((a:any,x:any)=>a+Number(x.total||0),0),present=(data.attendance||[]).find((x:any)=>String(x.status).toUpperCase()==='PRESENT')?.total||0,pct=total?Math.round(Number(present)/total*100):0;
  return <Stack spacing={2}>
@@ -151,8 +199,9 @@ function ExamDialog({exam,studentId,onClose,onSubmitted}:{exam:any;studentId:str
  </DialogContent><DialogActions><Button onClick={onClose} disabled={busy}>Cancel</Button>{workspace&&<Button variant="contained" onClick={submit} disabled={busy}>{busy?'Submitting…':'Submit exam'}</Button>}</DialogActions></Dialog>
 }
 
-function Kpi({icon:Icon,label,value,sub}:{icon?:any;label:string;value:any;sub?:string}){return <Card><CardContent sx={{p:{xs:1.75,md:2.25}}}>{Icon&&<Icon sx={{fontSize:20,color:'#0f766e'}}/>}<Typography sx={{fontSize:11,color:'#64748b',mt:Icon?1:0,textTransform:'uppercase',letterSpacing:.3}}>{label}</Typography><Typography sx={{fontSize:{xs:21,md:25},fontWeight:950,mt:.2}}>{value}</Typography>{sub&&<Typography sx={{fontSize:10.5,color:'#94a3b8',mt:.2}}>{sub}</Typography>}</CardContent></Card>}
+function Kpi({icon:Icon,label,value,sub}:{icon?:any;label:string;value:any;sub?:string}){return <Card sx={{height:'100%',borderRadius:3,border:'1px solid #e8edf3',boxShadow:'0 2px 8px rgba(15,23,42,.025)'}}><CardContent sx={{p:{xs:1.6,md:2.1}}}><Stack direction="row" alignItems="center" justifyContent="space-between"><Typography sx={{fontSize:10.5,color:'#64748b',fontWeight:850,textTransform:'uppercase',letterSpacing:.45}}>{label}</Typography>{Icon&&<Box sx={{width:34,height:34,borderRadius:2,bgcolor:'#eaf7f5',display:'grid',placeItems:'center'}}><Icon sx={{fontSize:18,color:'#0f766e'}}/></Box>}</Stack><Typography sx={{fontSize:{xs:21,md:26},fontWeight:950,mt:1,color:'#0f172a',letterSpacing:-.5,overflowWrap:'anywhere'}}>{value}</Typography>{sub&&<Typography sx={{fontSize:10.5,color:'#94a3b8',mt:.3}}>{sub}</Typography>}</CardContent></Card>}
 function SectionTitle({title,text}:{title:string;text?:string}){return <Box sx={{mb:1.5}}><Typography sx={{fontWeight:900,fontSize:15}}>{title}</Typography>{text&&<Typography sx={{fontSize:11.5,color:'#94a3b8',mt:.25}}>{text}</Typography>}</Box>}
 function ActionRow({icon:Icon,title,text,onClick,badge}:{icon:any;title:string;text:string;onClick:()=>void;badge:string}){return <Button onClick={onClick} sx={{justifyContent:'flex-start',textAlign:'left',p:1.25,border:'1px solid #edf1f5',borderRadius:2,color:'#0f172a'}}><Icon sx={{color:'#0f766e',mr:1.25}}/><Box sx={{flex:1}}><Typography sx={{fontSize:12.5,fontWeight:800}}>{title}</Typography><Typography sx={{fontSize:10.5,color:'#94a3b8'}}>{text}</Typography></Box><Chip size="small" label={badge}/></Button>}
 function Row({label,value}:{label:string;value:any}){return <Box><Typography sx={{fontSize:10.5,color:'#94a3b8'}}>{label}</Typography><Typography sx={{fontSize:13,fontWeight:800,mt:.15}}>{value}</Typography></Box>}
+function EmptyInline({title,text}:{title:string;text:string}){return <Box sx={{py:2.5,textAlign:'center',bgcolor:'#f8fafc',borderRadius:2.5,border:'1px dashed #e2e8f0'}}><CheckCircleRounded sx={{fontSize:27,color:'#0f766e',mb:.6}}/><Typography sx={{fontWeight:850,fontSize:12.5}}>{title}</Typography><Typography sx={{fontSize:11.5,color:'#64748b',mt:.35}}>{text}</Typography></Box>}
 function Empty({title,text}:{title:string;text:string}){return <Card><CardContent sx={{py:7,textAlign:'center'}}><CheckCircleRounded sx={{fontSize:34,color:'#0f766e',mb:1}}/><Typography sx={{fontWeight:900}}>{title}</Typography><Typography sx={{fontSize:12.5,color:'#64748b',mt:.5}}>{text}</Typography></CardContent></Card>}
