@@ -86,10 +86,12 @@ public class PortalController {
    if(batchId!=null) timetable=db.queryForList("""
      select te.day_of_week,te.start_time,te.end_time,coalesce(su.name,'General') subject_name,
             coalesce(te.classroom_id::text,'') classroom_id,
+            coalesce(cr.name,'') classroom_name,
             coalesce(t.first_name||' '||coalesce(t.last_name,''),'') teacher_name
      from timetable_entries te
      left join subjects su on su.id=te.subject_id and su.tenant_id=te.tenant_id
      left join teachers t on t.id=te.teacher_id and t.tenant_id=te.tenant_id
+     left join classrooms cr on cr.id=te.classroom_id and cr.tenant_id=te.tenant_id
      where te.tenant_id=? and te.batch_id=? order by te.day_of_week,te.start_time
      """,t,batchId);
    List<Map<String,Object>> exams=db.queryForList("""
