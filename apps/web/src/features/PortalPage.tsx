@@ -1,6 +1,6 @@
 import {useEffect,useMemo,useState} from 'react';
 import {Alert,Avatar,Box,Button,Card,CardContent,Checkbox,Chip,Dialog,DialogActions,DialogContent,DialogTitle,Divider,FormControlLabel,LinearProgress,MenuItem,Radio,RadioGroup,Select,Stack,Tab,Tabs,TextField,Typography} from '@mui/material';
-import {AssignmentRounded,EventAvailableRounded,NotificationsRounded,PaymentsRounded,QuizRounded,SchoolRounded,CalendarMonthRounded,ArrowForwardRounded,CheckCircleRounded,ScheduleRounded,AccessTimeRounded,TodayRounded,CampaignRounded} from '@mui/icons-material';
+import {AssignmentRounded,EventAvailableRounded,NotificationsRounded,PaymentsRounded,QuizRounded,SchoolRounded,ArrowForwardRounded,CheckCircleRounded,ScheduleRounded,TodayRounded,CampaignRounded} from '@mui/icons-material';
 import {api} from '../services';
 import {useAuth} from './auth/authStore';
 
@@ -15,7 +15,7 @@ const asMinutes=(v:any)=>{if(!v)return 0;const [h,m]=String(v).split(':').map(Nu
 
 export default function PortalPage(){
  const session=useAuth(s=>s.session);
- const [children,setChildren]=useState<any[]>([]),[id,setId]=useState(''),[data,setData]=useState<any>(),[error,setError]=useState(''),[loading,setLoading]=useState(true),[tab,setTab]=useState(0),[exam,setExam]=useState<any>(null);
+ const [children,setChildren]=useState<any[]>([]),[id,setId]=useState(''),[data,setData]=useState<any>(),[error,setError]=useState(''),[loading,setLoading]=useState(true),[studentLoading,setStudentLoading]=useState(false),[tab,setTab]=useState(0),[exam,setExam]=useState<any>(null);
  const isStudent=session?.roles?.includes('STUDENT');
  const load=async()=>{
   setLoading(true);setError('');
@@ -24,13 +24,15 @@ export default function PortalPage(){
  };
  const loadStudent=async(sid=id)=>{
   if(!sid)return;
+  setStudentLoading(true);
   try{setError('');setData(unwrap(await api.get('/portal/student/'+sid)));}
   catch(e:any){setError(e?.response?.data?.message||'Unable to load student portal')}
+  finally{setStudentLoading(false)}
  };
  useEffect(()=>{load()},[]);
- useEffect(()=>{loadStudent()},[id]);
+ useEffect(()=>{if(id){setData(undefined);loadStudent(id)}},[id]);
  if(loading&&!children.length)return <Card><CardContent sx={{py:10,textAlign:'center'}}><LinearProgress sx={{mb:3}}/><Typography sx={{color:'#64748b'}}>Loading your learning workspace…</Typography></CardContent></Card>;
- if(error&&!data)return <Alert severity="error" sx={{borderRadius:3}}>{error}</Alert>;
+ if(error&&!data)return <Stack spacing={1.5}><Alert severity="error" sx={{borderRadius:3}}>{error}</Alert><Button variant="outlined" onClick={()=>id?loadStudent(id):load()}>Retry loading portal</Button></Stack>;
  if(!children.length)return <Empty title="No linked student profile" text="Your institute has not linked a student to this portal account yet."/>;
 
  return <Stack spacing={2.25} sx={{width:'100%',maxWidth:1440,mx:'auto',pb:3}}>
@@ -40,7 +42,7 @@ export default function PortalPage(){
   <Tabs value={tab} onChange={(_,v)=>setTab(v)} variant="scrollable" allowScrollButtonsMobile sx={{bgcolor:'#fff',border:'1px solid #e8edf3',borderRadius:2.5,px:1}}>
    {['Overview','Attendance','Homework','Results','Fees','Schedule','Exams','Notifications'].map(x=><Tab key={x} label={x} sx={{fontWeight:800,fontSize:12}}/>)}
   </Tabs>
-  {!data?<Card><CardContent sx={{py:8,textAlign:'center'}}><Typography>Loading student data…</Typography></CardContent></Card>:
+  {!data||studentLoading?<Card><CardContent sx={{py:8,textAlign:'center'}}><LinearProgress sx={{mb:2}}/><Typography color="text.secondary">Loading your learning data…</Typography></CardContent></Card>:
    <>
     {tab===0&&<Overview data={data} setTab={setTab}/>}
     {tab===1&&<Attendance data={data}/>}
