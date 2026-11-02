@@ -22,8 +22,9 @@ public class SecurityConfig {
       .requestMatchers(HttpMethod.OPTIONS,"/**").permitAll().anyRequest().authenticated())
       .addFilterBefore(jwt, UsernamePasswordAuthenticationFilter.class).build();
   }
-  @Bean CorsConfigurationSource corsConfigurationSource(@Value("${app.frontend-url:http://localhost:5173}") String frontend) {
-    CorsConfiguration c=new CorsConfiguration(); c.setAllowedOrigins(List.of(frontend)); c.setAllowedMethods(List.of("GET","POST","PUT","PATCH","DELETE","OPTIONS")); c.setAllowedHeaders(List.of("Authorization","Content-Type","X-Request-Id")); c.setExposedHeaders(List.of("X-Request-Id")); c.setAllowCredentials(true);
+  @Bean CorsConfigurationSource corsConfigurationSource(@Value("${app.frontend-url:http://localhost:5173,http://localhost:5174}") String frontends) {
+    List<String> allowedOrigins=java.util.Arrays.stream(frontends.split(",")).map(String::trim).filter(origin->!origin.isEmpty()).toList();
+    CorsConfiguration c=new CorsConfiguration(); c.setAllowedOrigins(allowedOrigins); c.setAllowedMethods(List.of("GET","POST","PUT","PATCH","DELETE","OPTIONS")); c.setAllowedHeaders(List.of("Authorization","Content-Type","X-Request-Id")); c.setExposedHeaders(List.of("X-Request-Id")); c.setAllowCredentials(true);
     UrlBasedCorsConfigurationSource s=new UrlBasedCorsConfigurationSource(); s.registerCorsConfiguration("/**",c); return s;
   }
 }
