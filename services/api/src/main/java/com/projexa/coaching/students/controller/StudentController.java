@@ -26,13 +26,13 @@ public class StudentController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAuthority('dashboard.read') or hasAuthority('settings.manage') or hasAuthority('students.read')")
+    @PreAuthorize("hasAuthority('dashboard.read') or hasAuthority('settings.manage') or hasAuthority('students.read') or hasAuthority('students.manage')")
     public ApiResponse<List<Student>> list() {
         return ApiResponse.ok(service.list());
     }
 
     @GetMapping("/operational")
-    @PreAuthorize("hasAuthority('dashboard.read') or hasAuthority('students.read') or hasAuthority('settings.manage')")
+    @PreAuthorize("hasAuthority('dashboard.read') or hasAuthority('students.read') or hasAuthority('students.manage') or hasAuthority('settings.manage')")
     public List<Map<String, Object>> operational() {
         UUID tenantId = TenantContextHolder.getRequired();
         return db.queryForList("""
@@ -83,19 +83,19 @@ public class StudentController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAuthority('students.read') or hasAnyRole('INSTITUTE_OWNER','INSTITUTE_ADMIN')")
+    @PreAuthorize("hasAuthority('students.read') or hasAuthority('students.manage') or hasAnyRole('INSTITUTE_OWNER','INSTITUTE_ADMIN')")
     public ApiResponse<Student> get(@PathVariable UUID id) {
         return ApiResponse.ok(service.get(id));
     }
 
     @PostMapping
-    @PreAuthorize("hasAuthority('settings.manage') or hasAuthority('students.create')")
+    @PreAuthorize("hasAuthority('settings.manage') or hasAuthority('students.create') or hasAuthority('students.manage')")
     public ApiResponse<Student> create(@RequestBody Student item) {
         return ApiResponse.ok(service.create(item));
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAuthority('settings.manage') or hasAuthority('students.update')")
+    @PreAuthorize("hasAuthority('settings.manage') or hasAuthority('students.update') or hasAuthority('students.manage')")
     public ApiResponse<Student> update(@PathVariable UUID id, @RequestBody Student item) {
         return ApiResponse.ok(service.update(id, item));
     }
@@ -228,7 +228,7 @@ public class StudentController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAuthority('settings.manage') or hasAuthority('students.delete')")
+    @PreAuthorize("hasAuthority('settings.manage') or hasAuthority('students.delete') or hasAuthority('students.manage')")
     public ApiResponse<Void> delete(@PathVariable UUID id) {
         service.delete(id);
         return ApiResponse.ok(null);
