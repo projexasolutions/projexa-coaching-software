@@ -13,10 +13,10 @@ const todayIndex=()=>{const d=new Date().getDay();return d===0?7:d};
 const greeting=()=>{const h=new Date().getHours();return h<12?'Good morning':h<17?'Good afternoon':'Good evening'};
 const asMinutes=(v:any)=>{if(!v)return 0;const [h,m]=String(v).split(':').map(Number);return (h||0)*60+(m||0)};
 
-export default function PortalPage(){
+export default function PortalPage({mode}:{mode:'student'|'parent'}){
  const session=useAuth(s=>s.session);
  const [children,setChildren]=useState<any[]>([]),[id,setId]=useState(''),[data,setData]=useState<any>(),[error,setError]=useState(''),[loading,setLoading]=useState(true),[studentLoading,setStudentLoading]=useState(false),[tab,setTab]=useState(0),[exam,setExam]=useState<any>(null);
- const isStudent=session?.roles?.includes('STUDENT');
+ const isStudent=mode==='student'&&session?.roles?.includes('STUDENT');
  const load=async()=>{
   setLoading(true);setError('');
   try{const d=unwrap(await api.get('/portal/me'));setChildren(d.children||[]);if(!id&&d.children?.[0]?.id)setId(d.children[0].id);}
@@ -36,8 +36,8 @@ export default function PortalPage(){
  if(!children.length)return <Empty title="No linked student profile" text="Your institute has not linked a student to this portal account yet."/>;
 
  return <Stack spacing={2.25} sx={{width:'100%',maxWidth:1440,mx:'auto',pb:3}}>
-  <WelcomeHeader data={data}/>
-  <Hero data={data} childrenRows={children} id={id} setId={setId} isStudent={isStudent}/>
+  <WelcomeHeader data={data} mode={mode}/>
+  <Hero data={data} childrenRows={children} id={id} setId={setId} mode={mode}/>
   {error&&<Alert severity="warning" onClose={()=>setError('')}>{error}</Alert>}
   <Tabs value={tab} onChange={(_,v)=>setTab(v)} variant="scrollable" allowScrollButtonsMobile sx={{bgcolor:'#fff',border:'1px solid #e8edf3',borderRadius:2.5,px:1}}>
    {['Overview','Attendance','Homework','Results','Fees','Schedule','Exams','Notifications'].map(x=><Tab key={x} label={x} sx={{fontWeight:800,fontSize:12}}/>)}
@@ -58,28 +58,28 @@ export default function PortalPage(){
  </Stack>
 }
 
-function Hero({data,childrenRows,id,setId,isStudent}:{data:any;childrenRows:any[];id:string;setId:(x:string)=>void;isStudent?:boolean}){
+function Hero({data,childrenRows,id,setId,mode}:{data:any;childrenRows:any[];id:string;setId:(x:string)=>void;mode:'student'|'parent'}){
  const s=data?.student;
  return <Card sx={{overflow:'hidden',background:'linear-gradient(135deg,#0f766e 0%,#115e59 100%)',color:'#fff',border:0}}>
   <CardContent sx={{p:{xs:2.25,md:3}}}>
    <Stack direction={{xs:'column',sm:'row'}} spacing={2} alignItems={{sm:'center'}}>
     <Avatar sx={{width:58,height:58,bgcolor:'rgba(255,255,255,.16)',color:'#fff',fontSize:20,fontWeight:900}}>{(s?.first_name||'S')[0]}</Avatar>
     <Box sx={{flex:1}}>
-     <Typography sx={{fontSize:11,textTransform:'uppercase',letterSpacing:1.2,opacity:.72,fontWeight:800}}>My Learning</Typography>
+     <Typography sx={{fontSize:11,textTransform:'uppercase',letterSpacing:1.2,opacity:.72,fontWeight:800}}>{mode==='parent'?'Parent view':'My Learning'}</Typography>
      <Typography sx={{fontSize:{xs:23,md:28},fontWeight:950,letterSpacing:-.8}}>{s?.first_name} {s?.last_name||''}</Typography>
      <Typography sx={{fontSize:12.5,opacity:.82,mt:.25}}>{s?.admission_number} · {data?.enrollment?.class_name||'Class not assigned'} · {data?.enrollment?.batch_name||'Batch not assigned'}</Typography>
     </Box>
-    {!isStudent&&childrenRows.length>1&&<Select size="small" value={id} onChange={e=>setId(e.target.value)} sx={{minWidth:190,color:'#fff',borderRadius:2,'& .MuiOutlinedInput-notchedOutline':{borderColor:'rgba(255,255,255,.4)'},'& .MuiSvgIcon-root':{color:'#fff'}}}>{childrenRows.map(c=><MenuItem key={c.id} value={c.id}>{c.first_name} {c.last_name||''}</MenuItem>)}</Select>}
+    {mode==='parent'&&childrenRows.length>1&&<Select size="small" aria-label="Select child" value={id} onChange={e=>setId(e.target.value)} sx={{minWidth:190,color:'#fff',borderRadius:2,'& .MuiOutlinedInput-notchedOutline':{borderColor:'rgba(255,255,255,.4)'},'& .MuiSvgIcon-root':{color:'#fff'}}}>{childrenRows.map(c=><MenuItem key={c.id} value={c.id}>{c.first_name} {c.last_name||''}</MenuItem>)}</Select>}
    </Stack>
   </CardContent>
  </Card>
 }
 
-function WelcomeHeader({data}:{data:any}){
+function WelcomeHeader({data,mode}:{data:any;mode:'student'|'parent'}){
  const s=data?.student;const now=new Date();
  const label=now.toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
  return <Stack direction={{xs:'column',sm:'row'}} justifyContent="space-between" alignItems={{sm:'flex-end'}} spacing={1}>
-  <Box><Typography sx={{fontSize:{xs:23,md:28},fontWeight:950,letterSpacing:-.8,color:'#0f172a'}}>{greeting()}{s?.first_name?', '+s.first_name:''} 👋</Typography><Typography sx={{fontSize:13,color:'#64748b',mt:.35}}>Here's your learning overview for today.</Typography></Box>
+  <Box><Typography sx={{fontSize:{xs:23,md:28},fontWeight:950,letterSpacing:-.8,color:'#0f172a'}}>{greeting()}{s?.first_name?', '+s.first_name:''} 👋</Typography><Typography sx={{fontSize:13,color:'#64748b',mt:.35}}>{mode==='parent'?"Here's your child's learning overview for today.":"Here's your learning overview for today."}</Typography></Box>
   <Chip icon={<TodayRounded/>} label={label} variant="outlined" sx={{alignSelf:{xs:'flex-start',sm:'auto'},bgcolor:'#fff',borderColor:'#e2e8f0',fontWeight:700}}/>
  </Stack>
 }
