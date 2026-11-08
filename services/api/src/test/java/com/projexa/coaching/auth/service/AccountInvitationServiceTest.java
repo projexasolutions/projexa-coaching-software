@@ -55,4 +55,17 @@ class AccountInvitationServiceTest {
         verify(db).update(contains("where id=? and tenant_id=?"),eq(invitation),eq(tenant));
     }
 
+
+    @Test
+    void acceptanceRequiresAnActiveTenantBeforeCreatingAnAccount() {
+        var service = new AccountInvitationService(db,encoder,provider(),"no-reply@example.test",
+            "https://example.test/accept","smtp.example.test",72);
+        when(db.query(contains("join tenants tenant"), any(org.springframework.jdbc.core.RowMapper.class), anyString()))
+            .thenReturn(java.util.List.of());
+
+        assertThrows(IllegalArgumentException.class,()->service.accept("valid-token","a-secure-password"));
+
+        verify(db).query(contains("tenant.status='ACTIVE'"), any(org.springframework.jdbc.core.RowMapper.class), anyString());
+        verify(db,never()).update(startsWith("insert into users"), any(), any(), any(), any(), any());
+    }
 }
