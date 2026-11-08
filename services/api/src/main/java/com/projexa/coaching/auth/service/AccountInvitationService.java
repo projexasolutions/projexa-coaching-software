@@ -62,7 +62,7 @@ public class AccountInvitationService {
         return db.queryForList("""
             select id,email,role_code,expires_at,accepted_at,revoked_at,created_at
             from account_invitations
-            where tenant_id=? and revoked_at is null and accepted_at is null and expires_at>now()
+            where tenant_id=? and revoked_at is null and accepted_at is null
             order by created_at desc
             """, tenantId);
     }
@@ -117,7 +117,7 @@ public class AccountInvitationService {
         if(rawPassword==null||rawPassword.length()<12||rawPassword.length()>72) throw new IllegalArgumentException("Password must contain between 12 and 72 characters.");
         var rows=db.query("""
             select id,tenant_id,email,role_code from account_invitations
-            where token_hash=? and accepted_at is null and expires_at>now()
+            where token_hash=? and accepted_at is null and revoked_at is null and expires_at>now()
             for update
             """,(rs,n)->new Invitation(rs.getObject("id",UUID.class),rs.getObject("tenant_id",UUID.class),rs.getString("email"),rs.getString("role_code")),hash(rawToken));
         if(rows.isEmpty()) throw new IllegalArgumentException("Invitation is invalid or expired.");
