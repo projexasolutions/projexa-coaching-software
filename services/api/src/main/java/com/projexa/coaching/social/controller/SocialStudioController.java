@@ -43,10 +43,14 @@ public class SocialStudioController {
     public Map<String,Object> update(@PathVariable UUID id,@RequestBody PostRequest req) {
         validate(req);
         UUID tenant=TenantContextHolder.getRequired();
+        String nextStatus=status(req.status());
+        LocalDateTime scheduledAt=parseDate(req.scheduledFor());
+        Map<String,Object> existing=find(id,tenant);
+        validateTransition(String.valueOf(existing.get("status")),nextStatus,scheduledAt);
         int updated=db.update("""
             update social_posts set title=?,category=?,platforms=?,format=?,caption=?,hashtags=?,scheduled_for=?,status=?,updated_at=now()
             where id=? and tenant_id=?
-            """,req.title().trim(),req.category(),req.platforms(),req.format(),req.caption().trim(),clean(req.hashtags()),parseDate(req.scheduledFor()),status(req.status()),id,tenant);
+            """,req.title().trim(),req.category(),req.platforms(),req.format(),req.caption().trim(),clean(req.hashtags()),scheduledAt,nextStatus,id,tenant);
         if(updated==0) throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND,"Post not found");
         return find(id,tenant);
     }
@@ -67,6 +71,14 @@ public class SocialStudioController {
         if(r.category()==null||!Set.of("EDUCATIONAL","PROMOTIONAL","ENGAGEMENT","BRANDING").contains(r.category())) throw new IllegalArgumentException("Invalid content category");
         if(r.platforms()==null||!Set.of("INSTAGRAM","FACEBOOK","INSTAGRAM,FACEBOOK").contains(r.platforms())) throw new IllegalArgumentException("Invalid social platforms");
         if(r.format()==null||r.format().isBlank()||r.format().length()>40) throw new IllegalArgumentException("A valid post format is required");
+    }
+    private void validateTransition(String current,String next,LocalDateTime scheduledAt) {
+        if("PUBLISHED".equals(next)) throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.CONFLICT,"Posts can only be marked published after a connected publishing provider confirms success");
+        if("SCHEDULED".equals(next)) {
+            if(scheduledAt==null) throw new IllegalArgumentException("Choose a planned date and time before scheduling");
+            if(!scheduledAt.isAfter(LocalDateTime.now())) throw new IllegalArgumentException("Scheduled date and time must be in the future");
+            if(!"APPROVED".equals(current)&&!"SCHEDULED".equals(current)) throw new IllegalArgumentException("Approve the draft before adding it to the publishing queue");
+        }
     }
     private String status(String value) {
         String s=value==null?"DRAFT":value.toUpperCase(Locale.ROOT);
