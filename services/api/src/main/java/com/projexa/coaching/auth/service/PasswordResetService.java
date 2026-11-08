@@ -56,6 +56,7 @@ public class PasswordResetService {
             join tenants t on t.id=u.tenant_id
             where lower(t.slug)=? and lower(u.email)=?
               and t.status='ACTIVE' and u.status='ACTIVE'
+            for update of u
             """, (rs, row) -> rs.getObject(1, UUID.class), slug, email);
         if (users.size() != 1) return;
 
