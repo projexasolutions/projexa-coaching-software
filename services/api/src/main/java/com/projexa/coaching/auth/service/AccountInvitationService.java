@@ -116,14 +116,15 @@ public class AccountInvitationService {
         if(rawToken==null||rawToken.isBlank()||rawToken.length()>200) throw new IllegalArgumentException("Invitation is invalid or expired.");
         if(rawPassword==null||rawPassword.length()<12||rawPassword.length()>72) throw new IllegalArgumentException("Password must contain between 12 and 72 characters.");
         var rows=db.query("""
-            select id,tenant_id,email,role_code from account_invitations
-            where token_hash=? and accepted_at is null and revoked_at is null and expires_at>now()
-            for update
+            select ai.id,ai.tenant_id,ai.email,ai.role_code from account_invitations ai
+            join tenants tenant on tenant.id=ai.tenant_id and tenant.status='ACTIVE'
+            where ai.token_hash=? and ai.accepted_at is null and ai.revoked_at is null and ai.expires_at>now()
+            for update of ai,tenant
             """,(rs,n)->new Invitation(rs.getObject("id",UUID.class),rs.getObject("tenant_id",UUID.class),rs.getString("email"),rs.getString("role_code")),hash(rawToken));
         if(rows.isEmpty()) throw new IllegalArgumentException("Invitation is invalid or expired.");
         Invitation invitation=rows.get(0);
         String table=profileTable(invitation.role());
-        var profiles=db.query("select id,first_name,last_name from "+table+" where tenant_id=? and lower(email)=?",
+        var profiles=db.query("select id,first_name,last_name from "+table+" where tenant_id=? and lower(email)=? and user_id is null for update",
             (rs,n)->new Profile(rs.getObject("id",UUID.class),rs.getString("first_name"),rs.getString("last_name")),invitation.tenantId(),invitation.email());
         if(profiles.size()!=1) throw new IllegalArgumentException("The matching institute profile is no longer available.");
         if(count("select count(*) from users where tenant_id=? and lower(email)=?",invitation.tenantId(),invitation.email())>0)
@@ -140,8 +141,14 @@ public class AccountInvitationService {
             returning id
             """,(rs,n)->rs.getObject(1,UUID.class),invitation.tenantId(),roleName(invitation.role()),invitation.role(),"Institute portal role").stream().findFirst().orElseGet(()->db.queryForObject("select id from roles where tenant_id=? and code=?",UUID.class,invitation.tenantId(),invitation.role()));
         db.update("insert into user_roles(user_id,role_id) values(?,?)",userId,roleId);
-        db.update("update "+table+" set user_id=? where id=? and tenant_id=?",userId,profile.id(),invitation.tenantId());
-        db.update("update account_invitations set accepted_at=now() where id=?",invitation.id());
+        int linked=db.update("update "+table+" set user_id=? where id=? and tenant_id=? and user_id is null",
+            userId,profile.id(),invitation.tenantId());
+        if(linked!=1) throw new IllegalArgumentException("The institute profile could not be linked to this account.");
+        int accepted=db.update("""
+            update account_invitations set accepted_at=now()
+            where id=? and tenant_id=? and accepted_at is null and revoked_at is null
+            """,invitation.id(),invitation.tenantId());
+        if(accepted!=1) throw new IllegalArgumentException("Invitation is no longer available.");
     }
 
     private String profileTable(String role){return switch(role){case "TEACHER"->"teachers";case "STUDENT"->"students";case "PARENT"->"parents";default->throw new IllegalArgumentException("Unsupported invitation role");};}
