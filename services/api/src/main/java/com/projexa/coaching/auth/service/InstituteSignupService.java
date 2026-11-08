@@ -2,6 +2,7 @@ package com.projexa.coaching.auth.service;
 
 import jakarta.mail.internet.MimeMessage;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -31,14 +32,14 @@ public class InstituteSignupService {
     private final String smtpHost;
     private final int expiryMinutes;
 
-    public InstituteSignupService(JdbcTemplate db, PasswordEncoder encoder, JavaMailSender mail,
+    public InstituteSignupService(JdbcTemplate db, PasswordEncoder encoder, ObjectProvider<JavaMailSender> mailProvider,
             @Value("${app.mail.from}") String mailFrom,
             @Value("${app.signup.verification-url}") String verificationUrl,
             @Value("${spring.mail.host:}") String smtpHost,
             @Value("${app.signup.verification-minutes:30}") int expiryMinutes) {
         this.db = db;
         this.encoder = encoder;
-        this.mail = mail;
+        this.mail = mailProvider.getIfAvailable();
         this.mailFrom = mailFrom;
         this.verificationUrl = verificationUrl;
         this.smtpHost = smtpHost;
@@ -47,7 +48,7 @@ public class InstituteSignupService {
 
     @Transactional
     public void signup(SignupRequest request) {
-        if (smtpHost == null || smtpHost.isBlank()) {
+        if (smtpHost == null || smtpHost.isBlank() || mail == null) {
             throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE, "Institute signup is temporarily unavailable because email delivery is not configured.");
         }
         String institute = request.instituteName().trim();
