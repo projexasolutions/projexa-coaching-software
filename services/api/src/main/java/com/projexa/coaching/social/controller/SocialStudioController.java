@@ -1,6 +1,7 @@
 package com.projexa.coaching.social.controller;
 
 import com.projexa.coaching.common.tenant.TenantContextHolder;
+import com.projexa.coaching.social.service.SocialContentAiService;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -13,7 +14,14 @@ import java.util.*;
 @PreAuthorize("hasAuthority('social.manage')")
 public class SocialStudioController {
     private final JdbcTemplate db;
-    public SocialStudioController(JdbcTemplate db) { this.db = db; }
+    private final SocialContentAiService ai;
+    public SocialStudioController(JdbcTemplate db, SocialContentAiService ai) { this.db = db; this.ai = ai; }
+
+    @PostMapping("/ai/caption")
+    public Map<String,String> generateCaption(@RequestBody CaptionRequest req) {
+        if(req==null||req.title()==null||req.title().isBlank()) throw new IllegalArgumentException("Post title is required");
+        return ai.generate(req.title().trim(),req.category(),req.format(),req.instituteName());
+    }
 
     @GetMapping("/posts")
     public List<Map<String,Object>> list() {
@@ -68,4 +76,5 @@ public class SocialStudioController {
     private LocalDateTime parseDate(String value) { return value==null||value.isBlank()?null:LocalDateTime.parse(value.length()>19?value.substring(0,19):value); }
     private String clean(String value) { return value==null||value.isBlank()?null:value.trim(); }
     public record PostRequest(String title,String category,String platforms,String format,String caption,String hashtags,String scheduledFor,String status) {}
+    public record CaptionRequest(String title,String category,String format,String instituteName) {}
 }
