@@ -5,6 +5,8 @@ import {DashboardRounded,PeopleRounded,ChatRounded,SchoolRounded,EventAvailableR
 import LoginPage from '../features/auth/LoginPage';
 import SignupPage from '../features/auth/SignupPage';
 import VerifyInstitutePage from '../features/auth/VerifyInstitutePage';
+import AcceptInvitationPage from '../features/auth/AcceptInvitationPage';
+import UserInvitationsPage from '../features/auth/UserInvitationsPage';
 import {useAuth} from '../features/auth/authStore';
 import {LiveDashboard,LiveStudentsPage,LiveStudentProfile,LiveAcademicsPage,LiveAttendancePage,LiveFinancePage} from '../features/Phase1Pages';
 import AcademicsWorkspacePage from '../features/AcademicsWorkspacePage';
@@ -52,6 +54,7 @@ const navGroups:any[] = [
     label:'GROWTH & ENGAGEMENT',
     items:[
       ['/owner/admissions','Admissions CRM',PeopleRounded],
+      ['/owner/users','User Invitations',PeopleRounded],
       ['/owner/communication','Communication',ChatRounded],
       ['/owner/notifications','Notifications',NotificationsRounded],
       ['/portal','Parent / Student Portal',PeopleRounded],
@@ -177,6 +180,8 @@ export default function App(){return <BrowserRouter><Routes>
  <Route path="/login" element={<LoginPage/>}/>
  <Route path="/signup" element={<SignupPage/>}/>
  <Route path="/verify-institute" element={<VerifyInstitutePage/>}/>
+ <Route path="/accept-invitation" element={<AcceptInvitationPage/>}/>
+ <Route path="/owner/users" element={<Guard><Shell><Page title="User Access" subtitle="Invite teachers, students and parents to their secure portals."><UserInvitationsPage/></Page></Shell></Guard>}/>
  <Route path="/owner" element={<Guard><Shell><Page title="Command Center" subtitle="Live operational view of your institute."><LiveDashboard/></Page></Shell></Guard>}/>
  <Route path="/owner/students" element={<Guard><Shell><Page title="Students" subtitle="Manage student records and operational data."><LiveStudentsPage/></Page></Shell></Guard>}/>
  <Route path="/owner/students/:id" element={<Guard><Shell><Page title="Student Profile" subtitle="Live student record and fee ledger."><Profile/></Page></Shell></Guard>}/>
