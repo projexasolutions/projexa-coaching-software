@@ -20,7 +20,30 @@ public class SocialStudioController {
     @PostMapping("/ai/caption")
     public Map<String,String> generateCaption(@RequestBody CaptionRequest req) {
         if(req==null||req.title()==null||req.title().isBlank()) throw new IllegalArgumentException("Post title is required");
-        return ai.generate(req.title().trim(),req.category(),req.format(),req.instituteName());
+        return ai.generate(req.title().trim(),req.category(),req.format(),req.instituteName(),req.targetAudience(),req.brandTone(),req.callToAction());
+    }
+
+    @GetMapping("/brand-profile")
+    public Map<String,Object> getBrandProfile() {
+        List<Map<String,Object>> rows=db.queryForList("select institute_name,target_audience,brand_tone,website_url,call_to_action from social_brand_profiles where tenant_id=?",TenantContextHolder.getRequired());
+        if(rows.isEmpty()) return Map.of("institute_name","","target_audience","","brand_tone","Friendly and professional","website_url","","call_to_action","");
+        return rows.get(0);
+    }
+
+    @PutMapping("/brand-profile")
+    public Map<String,Object> saveBrandProfile(@RequestBody BrandProfileRequest req) {
+        if(req==null||req.instituteName()==null||req.instituteName().isBlank()||req.instituteName().length()>160)
+            throw new IllegalArgumentException("Institute name is required (maximum 160 characters)");
+        String tone=req.brandTone()==null||req.brandTone().isBlank()?"Friendly and professional":req.brandTone().trim();
+        if(tone.length()>80) throw new IllegalArgumentException("Brand tone must be 80 characters or fewer");
+        UUID tenant=TenantContextHolder.getRequired();
+        db.update("""
+            insert into social_brand_profiles(tenant_id,institute_name,target_audience,brand_tone,website_url,call_to_action,updated_at)
+            values(?,?,?,?,?,?,now())
+            on conflict(tenant_id) do update set institute_name=excluded.institute_name,target_audience=excluded.target_audience,
+            brand_tone=excluded.brand_tone,website_url=excluded.website_url,call_to_action=excluded.call_to_action,updated_at=now()
+            """,tenant,req.instituteName().trim(),clean(req.targetAudience()),tone,clean(req.websiteUrl()),clean(req.callToAction()));
+        return getBrandProfile();
     }
 
     @GetMapping("/posts")
@@ -90,5 +113,6 @@ public class SocialStudioController {
     private LocalDateTime parseDate(String value) { return value==null||value.isBlank()?null:LocalDateTime.parse(value.length()>19?value.substring(0,19):value); }
     private String clean(String value) { return value==null||value.isBlank()?null:value.trim(); }
     public record PostRequest(String title,String category,String platforms,String format,String caption,String hashtags,String scheduledFor,String status) {}
-    public record CaptionRequest(String title,String category,String format,String instituteName) {}
+    public record CaptionRequest(String title,String category,String format,String instituteName,String targetAudience,String brandTone,String callToAction) {}
+    public record BrandProfileRequest(String instituteName,String targetAudience,String brandTone,String websiteUrl,String callToAction) {}
 }
