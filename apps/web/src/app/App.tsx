@@ -3,6 +3,8 @@ import {BrowserRouter,Routes,Route,Navigate,NavLink,useParams} from 'react-route
 import {AppBar,Avatar,Box,Button,Chip,Divider,Drawer,IconButton,List,ListItemButton,ListItemIcon,ListItemText,Menu,MenuItem,Stack,Toolbar,Typography} from '@mui/material';
 import {DashboardRounded,PeopleRounded,ChatRounded,SchoolRounded,EventAvailableRounded,CalendarMonthRounded,AssignmentRounded,QuizRounded,AutoAwesomeRounded,AccountBalanceWalletRounded,CampaignRounded,NotificationsRounded,BarChartRounded,SupportAgentRounded,SettingsRounded,LogoutRounded,MenuRounded} from '@mui/icons-material';
 import LoginPage from '../features/auth/LoginPage';
+import SignupPage from '../features/auth/SignupPage';
+import VerifyInstitutePage from '../features/auth/VerifyInstitutePage';
 import {useAuth} from '../features/auth/authStore';
 import {LiveDashboard,LiveStudentsPage,LiveStudentProfile,LiveAcademicsPage,LiveAttendancePage,LiveFinancePage} from '../features/Phase1Pages';
 import AcademicsWorkspacePage from '../features/AcademicsWorkspacePage';
@@ -173,6 +175,8 @@ function Placeholder({title}:{title:string}){return <Box sx={{p:5,textAlign:'cen
 
 export default function App(){return <BrowserRouter><Routes>
  <Route path="/login" element={<LoginPage/>}/>
+ <Route path="/signup" element={<SignupPage/>}/>
+ <Route path="/verify-institute" element={<VerifyInstitutePage/>}/>
  <Route path="/owner" element={<Guard><Shell><Page title="Command Center" subtitle="Live operational view of your institute."><LiveDashboard/></Page></Shell></Guard>}/>
  <Route path="/owner/students" element={<Guard><Shell><Page title="Students" subtitle="Manage student records and operational data."><LiveStudentsPage/></Page></Shell></Guard>}/>
  <Route path="/owner/students/:id" element={<Guard><Shell><Page title="Student Profile" subtitle="Live student record and fee ledger."><Profile/></Page></Shell></Guard>}/>
