@@ -23,15 +23,15 @@ class InstituteSignupServiceTest {
         var request = new InstituteSignupService.SignupRequest("Institute", "institute-1",
             "Owner", "Test", "owner@example.test", "a-long-enough-password");
 
-        IllegalStateException error = assertThrows(IllegalStateException.class, () -> service.signup(request));
+        org.springframework.web.server.ResponseStatusException error = assertThrows(org.springframework.web.server.ResponseStatusException.class, () -> service.signup(request));
 
-        assertTrue(error.getMessage().contains("email delivery is not configured"));
+        assertTrue(error.getReason().contains("email delivery is not configured"));
         verifyNoInteractions(db, encoder, mail);
     }
 
     @Test
     void verificationRejectsMissingOrBlankTokenWithoutDatabaseLookup() {
-        InstituteSignupService service = new InstituteSignupService(db, encoder, mail,
+        InstituteSignupService service = new InstituteSignupService(db, encoder, provider(),
             "no-reply@example.test", "https://example.test/verify", "smtp.example.test", 30);
 
         assertThrows(IllegalArgumentException.class, () -> service.verify(" "));
