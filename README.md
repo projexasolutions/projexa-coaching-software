@@ -57,3 +57,7 @@ CI runs API tests and the frontend production build. The repository intentionall
 - Configure backups, database migrations, logs, metrics and alerting.
 - Implement/enable the concrete payment, email/SMS/WhatsApp/push and video providers before exposing those channels to customers.
 - Run integration/E2E tests against real infrastructure before production release.
+
+## Account email configuration
+
+Institute signup verification, teacher/student/parent invitations, and password reset links require SMTP settings (`MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_SMTP_AUTH`, `MAIL_SMTP_STARTTLS`, and `MAIL_FROM`). Configure `SIGNUP_VERIFICATION_URL`, `INVITATION_ACCEPT_URL`, and `PASSWORD_RESET_URL` to the public frontend routes. Password reset links are single-use, expire after 30 minutes, and revoke existing refresh tokens after a successful reset. Reset requests return a generic response to avoid confirming whether an email belongs to an active account. SMTP must be configured and tested before enabling these flows for customers.
