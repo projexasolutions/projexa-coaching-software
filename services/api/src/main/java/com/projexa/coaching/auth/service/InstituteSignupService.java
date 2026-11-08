@@ -88,7 +88,7 @@ public class InstituteSignupService {
             """, UUID.class, tenantId);
         db.update("""
             insert into role_permissions(role_id,permission_id)
-            select ?,id from permissions
+            select ?,id from permissions where code not like 'platform.%'
             on conflict do nothing
             """, ownerRole);
         db.update("insert into user_roles(user_id,role_id) values(?,?)", userId, ownerRole);
