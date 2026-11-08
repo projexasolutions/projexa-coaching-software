@@ -20,7 +20,14 @@ public class SocialStudioController {
     @PostMapping("/ai/caption")
     public Map<String,String> generateCaption(@RequestBody CaptionRequest req) {
         if(req==null||req.title()==null||req.title().isBlank()) throw new IllegalArgumentException("Post title is required");
-        return ai.generate(req.title().trim(),req.category(),req.format(),req.instituteName(),req.targetAudience(),req.brandTone(),req.callToAction());
+        requireMax(req.title(),180,"Post title");
+        requireMax(req.category(),40,"Category");
+        requireMax(req.format(),40,"Format");
+        requireMax(req.instituteName(),160,"Institute name");
+        requireMax(req.targetAudience(),240,"Target audience");
+        requireMax(req.brandTone(),80,"Brand tone");
+        requireMax(req.callToAction(),180,"Call to action");
+        return ai.generate(req.title().trim(),clean(req.category()),clean(req.format()),clean(req.instituteName()),clean(req.targetAudience()),clean(req.brandTone()),clean(req.callToAction()));
     }
 
     @GetMapping("/brand-profile")
@@ -35,6 +42,9 @@ public class SocialStudioController {
         if(req==null||req.instituteName()==null||req.instituteName().isBlank()||req.instituteName().length()>160)
             throw new IllegalArgumentException("Institute name is required (maximum 160 characters)");
         String tone=req.brandTone()==null||req.brandTone().isBlank()?"Friendly and professional":req.brandTone().trim();
+        requireMax(req.targetAudience(),240,"Target audience");
+        requireMax(req.websiteUrl(),240,"Website URL");
+        requireMax(req.callToAction(),180,"Call to action");
         if(tone.length()>80) throw new IllegalArgumentException("Brand tone must be 80 characters or fewer");
         UUID tenant=TenantContextHolder.getRequired();
         db.update("""
@@ -111,6 +121,9 @@ public class SocialStudioController {
         return s;
     }
     private LocalDateTime parseDate(String value) { return value==null||value.isBlank()?null:LocalDateTime.parse(value.length()>19?value.substring(0,19):value); }
+    private void requireMax(String value,int max,String field) {
+        if(value!=null&&value.length()>max) throw new IllegalArgumentException(field+" must be "+max+" characters or fewer");
+    }
     private String clean(String value) { return value==null||value.isBlank()?null:value.trim(); }
     public record PostRequest(String title,String category,String platforms,String format,String caption,String hashtags,String scheduledFor,String status) {}
     public record CaptionRequest(String title,String category,String format,String instituteName,String targetAudience,String brandTone,String callToAction) {}
