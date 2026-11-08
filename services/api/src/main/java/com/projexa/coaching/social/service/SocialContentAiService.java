@@ -43,9 +43,11 @@ public class SocialContentAiService {
                     Map.of("role","system","content","You are a careful social media copywriter for education businesses. Never fabricate institute facts."),
                     Map.of("role","user","content",prompt))))
                 .retrieve().body(Map.class);
-            List choices=(List)response.get("choices");
-            Map first=(Map)choices.get(0); Map message=(Map)first.get("message");
-            String content=String.valueOf(message.get("content")).trim();
+            if(response==null||!(response.get("choices") instanceof List choices)||choices.isEmpty())
+                throw new IllegalStateException("AI provider returned no choices");
+            if(!(choices.get(0) instanceof Map first)||!(first.get("message") instanceof Map message)||!(message.get("content") instanceof String rawContent))
+                throw new IllegalStateException("AI provider returned an invalid response shape");
+            String content=rawContent.trim();
             String[] parts=content.split("\\R(?=#)",2);
             String caption=parts[0].trim();
             String hashtags=parts.length>1?parts[1].trim():"#Education #Learning #StudyTips";
