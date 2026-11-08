@@ -48,7 +48,7 @@ public class InstituteSignupService {
     @Transactional
     public void signup(SignupRequest request) {
         if (smtpHost == null || smtpHost.isBlank()) {
-            throw new IllegalStateException("Institute signup is temporarily unavailable because email delivery is not configured.");
+            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE, "Institute signup is temporarily unavailable because email delivery is not configured.");
         }
         String institute = request.instituteName().trim();
         String slug = request.instituteSlug().trim().toLowerCase(Locale.ROOT);
@@ -109,7 +109,7 @@ public class InstituteSignupService {
                 verificationUrl + "?token=" + token + "\n\nIf you did not request this account, you can ignore this email.", false);
             mail.send(message);
         } catch (Exception ex) {
-            throw new IllegalStateException("We could not send the verification email. Please try again later.", ex);
+            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE, "We could not send the verification email. Please try again later.", ex);
         }
     }
 
