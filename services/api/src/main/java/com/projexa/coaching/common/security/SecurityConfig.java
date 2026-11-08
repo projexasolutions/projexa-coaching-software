@@ -18,7 +18,7 @@ import java.util.List;
 public class SecurityConfig {
   @Bean SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthenticationFilter jwt) throws Exception {
     return http.csrf(c->c.disable()).headers(h->h.frameOptions(f->f.deny()).contentTypeOptions(c->{}).httpStrictTransportSecurity(hsts->hsts.includeSubDomains(true).maxAgeInSeconds(31536000))).cors(c->{}).sessionManagement(s->s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-      .authorizeHttpRequests(a->a.requestMatchers("/actuator/health","/api/v1/auth/login","/api/v1/auth/refresh","/api/v1/auth/signup","/api/v1/auth/verify-institute").permitAll()
+      .authorizeHttpRequests(a->a.requestMatchers("/actuator/health","/api/v1/auth/login","/api/v1/auth/refresh","/api/v1/auth/signup","/api/v1/auth/verify-institute","/api/v1/invitations/accept").permitAll()
       .requestMatchers(HttpMethod.OPTIONS,"/**").permitAll().anyRequest().authenticated())
       .addFilterBefore(jwt, UsernamePasswordAuthenticationFilter.class).build();
   }
