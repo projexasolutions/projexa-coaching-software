@@ -31,11 +31,13 @@ public class SocialStudioController {
     @PostMapping("/posts")
     public Map<String,Object> create(@RequestBody PostRequest req) {
         validate(req);
+        String initialStatus=status(req.status());
+        if(!"DRAFT".equals(initialStatus)) throw new IllegalArgumentException("New posts must be created as drafts and approved before scheduling");
         UUID id=UUID.randomUUID(), tenant=TenantContextHolder.getRequired();
         db.update("""
             insert into social_posts(id,tenant_id,title,category,platforms,format,caption,hashtags,scheduled_for,status)
             values(?,?,?,?,?,?,?,?,?,?)
-            """, id,tenant,req.title().trim(),req.category(),req.platforms(),req.format(),req.caption().trim(),clean(req.hashtags()),parseDate(req.scheduledFor()),status(req.status()));
+            """, id,tenant,req.title().trim(),req.category(),req.platforms(),req.format(),req.caption().trim(),clean(req.hashtags()),parseDate(req.scheduledFor()),initialStatus);
         return find(id,tenant);
     }
 
