@@ -59,8 +59,6 @@ public class AuthService {
         User user = users.findById(token.getUserId())
             .orElseThrow(() -> new ApiException("INVALID_REFRESH_TOKEN", "Refresh token is invalid or expired"));
         if (!"ACTIVE".equals(user.getStatus())) {
-            token.setRevokedAt(now);
-            token.setLastUsedAt(now);
             throw new ApiException("USER_INACTIVE", "User account is inactive");
         }
 
