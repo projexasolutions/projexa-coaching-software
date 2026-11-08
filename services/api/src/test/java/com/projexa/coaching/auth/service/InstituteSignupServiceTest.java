@@ -2,6 +2,7 @@ package com.projexa.coaching.auth.service;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
@@ -13,9 +14,11 @@ class InstituteSignupServiceTest {
     private final PasswordEncoder encoder = mock(PasswordEncoder.class);
     private final JavaMailSender mail = mock(JavaMailSender.class);
 
+    private ObjectProvider<JavaMailSender> provider() { ObjectProvider<JavaMailSender> provider = mock(ObjectProvider.class); when(provider.getIfAvailable()).thenReturn(mail); return provider; }
+
     @Test
     void signupFailsClosedWhenSmtpIsNotConfigured() {
-        InstituteSignupService service = new InstituteSignupService(db, encoder, mail,
+        InstituteSignupService service = new InstituteSignupService(db, encoder, provider(),
             "no-reply@example.test", "https://example.test/verify", "", 30);
         var request = new InstituteSignupService.SignupRequest("Institute", "institute-1",
             "Owner", "Test", "owner@example.test", "a-long-enough-password");
