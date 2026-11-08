@@ -45,6 +45,9 @@ app:
     verification-minutes: ${SIGNUP_VERIFICATION_MINUTES:30}
   mail:
     from: ${MAIL_FROM:no-reply@projexa.local}
+  invitation:
+    accept-url: ${INVITATION_ACCEPT_URL:http://localhost:5173/accept-invitation}
+    expiry-minutes: ${INVITATION_EXPIRY_MINUTES:4320}
   jwt:
     secret: ${JWT_SECRET}
     access-token-minutes: 15
