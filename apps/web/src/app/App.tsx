@@ -21,6 +21,7 @@ import SettingsPage from '../features/SettingsPage';
 import AutomationPage from '../features/AutomationPage';
 import QuestionBankPage from '../features/QuestionBankPage';
 import NotificationsPage from '../features/NotificationsPage';
+import SocialStudioPage from '../features/SocialStudioPage';
 import InstituteSetupPage from '../features/InstituteSetupPage';
 import PlatformInstitutesPage from '../features/PlatformInstitutesPage';
 import PlatformInstituteSetupPage from '../features/PlatformInstituteSetupPage';
@@ -50,6 +51,7 @@ const navGroups:any[] = [
     label:'GROWTH & ENGAGEMENT',
     items:[
       ['/owner/admissions','Admissions CRM',PeopleRounded],
+      ['/owner/social-studio','Social Studio',CampaignRounded],
       ['/owner/communication','Communication',ChatRounded],
       ['/owner/notifications','Notifications',NotificationsRounded],
       ['/portal','Parent / Student Portal',PeopleRounded],
@@ -187,6 +189,7 @@ export default function App(){return <BrowserRouter><Routes>
  <Route path="/owner/intelligence" element={<Guard><Shell><Page title="AI Intelligence" subtitle="Prioritize institute risks and learning opportunities from operational data."><IntelligencePage/></Page></Shell></Guard>}/>
  <Route path="/portal" element={<PortalGuard><PortalShell><Page title="My Learning" subtitle="Your attendance, fees, results and homework in one workspace."><PortalPage/></Page></PortalShell></PortalGuard>}/>\n <Route path="/student" element={<Navigate to="/portal" replace/>}/>
  <Route path="/owner/communication" element={<Guard><Shell><Page title="Communication" subtitle="Internal conversations and institute communication workspace."><CommunicationPage/></Page></Shell></Guard>}/>
+ <Route path="/owner/social-studio" element={<Guard><Shell><Page title="Social Studio" subtitle="Plan, create and manage your institute’s social media content."><SocialStudioPage/></Page></Shell></Guard>}/>
  <Route path="/owner/admissions" element={<Guard><Shell><Page title="Admissions CRM" subtitle="Manage enquiries, counselling, demos, follow-ups and conversions."><AdmissionsPage/></Page></Shell></Guard>}/>
  <Route path="/owner/reports" element={<Guard><Shell><Page title="Reports" subtitle="Institute performance, collections and attendance reporting."><ReportsPage/></Page></Shell></Guard>}/>
  <Route path="/owner/support" element={<Guard><Shell><Page title="Support" subtitle="Track institute support requests and operational issues."><SupportPage/></Page></Shell></Guard>}/>
