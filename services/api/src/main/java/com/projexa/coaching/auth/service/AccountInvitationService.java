@@ -54,14 +54,57 @@ public class AccountInvitationService {
         String token=newToken();
         db.update("insert into account_invitations(tenant_id,email,role_code,token_hash,expires_at,created_by) values(?,?,?,?,?,?)",
             tenantId,email,role,hash(token),LocalDateTime.now().plusMinutes(expiryMinutes),inviterId);
+        sendInvitationEmail(email,role,token);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Map<String,Object>> list(UUID tenantId) {
+        return db.queryForList("""
+            select id,email,role_code,expires_at,accepted_at,revoked_at,created_at
+            from account_invitations
+            where tenant_id=? and revoked_at is null and accepted_at is null and expires_at>now()
+            order by created_at desc
+            """, tenantId);
+    }
+
+    @Transactional
+    public void revoke(UUID tenantId, UUID invitationId) {
+        int changed = db.update("""
+            update account_invitations set revoked_at=now()
+            where id=? and tenant_id=? and accepted_at is null and revoked_at is null
+            """, invitationId, tenantId);
+        if (changed != 1) throw new IllegalArgumentException("Invitation is no longer pending or does not exist.");
+    }
+
+    @Transactional
+    public void resend(UUID tenantId, UUID invitationId) {
+        if (smtpHost == null || smtpHost.isBlank() || mail == null)
+            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE,"Invitation email delivery is not configured.");
+        var rows = db.query("""
+            select id,email,role_code from account_invitations
+            where id=? and tenant_id=? and accepted_at is null and revoked_at is null
+            for update
+            """, (rs,n) -> new Invitation(rs.getObject("id",UUID.class),tenantId,rs.getString("email"),rs.getString("role_code")), invitationId,tenantId);
+        if(rows.isEmpty()) throw new IllegalArgumentException("Invitation is no longer pending or does not exist.");
+        Invitation invitation=rows.get(0);
+        String token=newToken();
+        int updated=db.update("""
+            update account_invitations set token_hash=?,expires_at=?,created_at=now()
+            where id=? and tenant_id=? and accepted_at is null and revoked_at is null
+            """,hash(token),LocalDateTime.now().plusMinutes(expiryMinutes),invitationId,tenantId);
+        if(updated!=1) throw new IllegalArgumentException("Invitation could not be renewed.");
+        sendInvitationEmail(invitation.email(),invitation.role(),token);
+    }
+
+    private void sendInvitationEmail(String email,String role,String token) {
         try {
             MimeMessage message=mail.createMimeMessage();
             MimeMessageHelper helper=new MimeMessageHelper(message,StandardCharsets.UTF_8.name());
             helper.setFrom(mailFrom); helper.setTo(email);
             helper.setSubject("You are invited to Projexa Coaching OS");
-            helper.setText("You have been invited to access your institute as a "+role.toLowerCase(Locale.ROOT)+".\n\n"+
-                "Accept the invitation and create your password using this link (expires in "+expiryMinutes+" minutes):\n"+
-                acceptUrl+"?token="+token+"\n\nIf you were not expecting this invitation, ignore this email.",false);
+            helper.setText("You have been invited to access your institute as a "+role.toLowerCase(Locale.ROOT)+".\\n\\n"+
+                "Accept the invitation and create your password using this link (expires in "+expiryMinutes+" minutes):\\n"+
+                acceptUrl+"?token="+token+"\\n\\nIf you were not expecting this invitation, ignore this email.",false);
             mail.send(message);
         } catch(Exception ex) {
             throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE,"Invitation email could not be sent. Please try again.",ex);
