@@ -9,6 +9,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -18,11 +19,31 @@ public class AccountInvitationController {
     private final AccountInvitationService invitations;
     public AccountInvitationController(AccountInvitationService invitations){this.invitations=invitations;}
 
+    @GetMapping
+    @PreAuthorize("hasAuthority('users.manage') or hasAuthority('settings.manage')")
+    public List<Map<String,Object>> list(){
+        return invitations.list(TenantContextHolder.getRequired());
+    }
+
     @PostMapping
     @PreAuthorize("hasAuthority('users.manage') or hasAuthority('settings.manage')")
     public ResponseEntity<Map<String,String>> invite(@Valid @RequestBody InviteRequest request,Authentication auth){
         invitations.invite(TenantContextHolder.getRequired(),UUID.fromString(auth.getName()),request.email(),request.role());
         return ResponseEntity.accepted().body(Map.of("message","Invitation sent. The recipient must accept it before an account is activated."));
+    }
+
+    @PostMapping("/{invitationId}/resend")
+    @PreAuthorize("hasAuthority('users.manage') or hasAuthority('settings.manage')")
+    public ResponseEntity<Map<String,String>> resend(@PathVariable UUID invitationId){
+        invitations.resend(TenantContextHolder.getRequired(),invitationId);
+        return ResponseEntity.accepted().body(Map.of("message","A renewed invitation link has been sent."));
+    }
+
+    @DeleteMapping("/{invitationId}")
+    @PreAuthorize("hasAuthority('users.manage') or hasAuthority('settings.manage')")
+    public ResponseEntity<Void> revoke(@PathVariable UUID invitationId){
+        invitations.revoke(TenantContextHolder.getRequired(),invitationId);
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/accept")
