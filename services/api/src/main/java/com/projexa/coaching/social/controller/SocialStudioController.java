@@ -98,7 +98,11 @@ public class SocialStudioController {
     }
 
     private Map<String,Object> find(UUID id,UUID tenant) {
-        return db.queryForMap("select * from social_posts where id=? and tenant_id=?",id,tenant);
+        try {
+            return db.queryForMap("select * from social_posts where id=? and tenant_id=?",id,tenant);
+        } catch (org.springframework.dao.EmptyResultDataAccessException ex) {
+            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND,"Post not found");
+        }
     }
     private void validate(PostRequest r) {
         if(r==null||r.title()==null||r.title().isBlank()||r.title().length()>180) throw new IllegalArgumentException("A post title (max 180 characters) is required");
