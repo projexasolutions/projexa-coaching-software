@@ -32,6 +32,11 @@ management:
 
 app:
   frontend-url: ${FRONTEND_URL:http://localhost:5173}
+  signup:
+    verification-url: ${SIGNUP_VERIFICATION_URL:http://localhost:5173/verify-institute}
+    verification-minutes: ${SIGNUP_VERIFICATION_MINUTES:30}
+  mail:
+    from: ${MAIL_FROM:no-reply@projexa.local}
   jwt:
     secret: ${JWT_SECRET}
     access-token-minutes: 15
