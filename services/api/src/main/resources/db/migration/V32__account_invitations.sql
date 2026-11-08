@@ -22,3 +22,4 @@ INSERT INTO role_permissions(role_id,permission_id)
 SELECT r.id,p.id FROM roles r CROSS JOIN permissions p
 WHERE r.code IN ('INSTITUTE_OWNER','INSTITUTE_ADMIN') AND p.code='users.manage'
 ON CONFLICT DO NOTHING;
+CREATE UNIQUE INDEX uq_roles_tenant_code ON roles(tenant_id,code) WHERE tenant_id IS NOT NULL;
