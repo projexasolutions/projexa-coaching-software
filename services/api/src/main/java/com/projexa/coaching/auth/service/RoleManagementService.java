@@ -57,7 +57,7 @@ public class RoleManagementService {
         String name = clean(rawName, 80, "Role name");
         String description = rawDescription == null ? null : rawDescription.trim();
         if (description != null && description.length() > 300) throw new IllegalArgumentException("Description is too long.");
-        List<String> codes = validatePermissions(actorId, requested);
+        List<String> codes = validatePermissions(tenantId, actorId, requested);
         String code = "CUSTOM_" + UUID.randomUUID().toString().replace("-", "").substring(0, 12).toUpperCase(Locale.ROOT);
         UUID roleId = db.queryForObject("""
             insert into roles(tenant_id,name,code,description,system_role)
@@ -141,7 +141,7 @@ public class RoleManagementService {
             throw new IllegalArgumentException("Custom role not found or cannot be assigned.");
     }
 
-    private List<String> validatePermissions(UUID actorId, List<String> requested) {
+    private List<String> validatePermissions(UUID tenantId, UUID actorId, List<String> requested) {
         if (requested == null) return List.of();
         if (requested.size() > 100) throw new IllegalArgumentException("Too many permissions.");
         LinkedHashSet<String> unique = new LinkedHashSet<>();
@@ -157,9 +157,11 @@ public class RoleManagementService {
         String sql = "select distinct p.code from permissions p " +
             "join role_permissions rp on rp.permission_id=p.id " +
             "join user_roles ur on ur.role_id=rp.role_id " +
+            "join users actor on actor.id=ur.user_id and actor.tenant_id=? and actor.status='ACTIVE' " +
             "where ur.user_id=? and p.code not like 'platform.%' " +
             "and p.code not in ('roles.manage','users.manage','settings.manage') and p.code in (" + placeholders + ")";
         args.add(0, actorId);
+        args.add(0, tenantId);
         List<String> allowed = db.query(sql, (rs,n) -> rs.getString(1), args.toArray());
         if (allowed.size() != unique.size()) throw new IllegalArgumentException("One or more permissions are unknown or restricted.");
         return List.copyOf(unique);
