@@ -39,6 +39,8 @@ management:
         include: health,info,metrics
 
 app:
+  demo-accounts:
+    enabled: ${DEMO_ACCOUNTS_ENABLED:false}
   frontend-url: ${FRONTEND_URL:http://localhost:5173}
   signup:
     verification-url: ${SIGNUP_VERIFICATION_URL:http://localhost:5173/verify-institute}
