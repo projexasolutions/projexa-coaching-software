@@ -54,7 +54,7 @@ class PhaseOneCustomRolesPostgresTest {
         assertEquals(List.of(colleague), service.assignedUsers(tenant, customRole));
         assertThrows(IllegalArgumentException.class, () -> service.assignUser(tenant, customRole, foreignUser));
         assertThrows(IllegalArgumentException.class, () -> service.assignUser(foreignTenant, customRole, foreignUser));
-        assertThrows(IllegalArgumentException.class, () -> service.get(foreignTenant, customRole));
+        assertThrows(org.springframework.dao.EmptyResultDataAccessException.class, () -> service.get(foreignTenant, customRole));
         assertThrows(IllegalArgumentException.class, () -> service.delete(tenant, customRole));
         service.unassignUser(tenant, customRole, colleague);
         service.delete(tenant, customRole);
