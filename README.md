@@ -57,3 +57,15 @@ CI runs API tests and the frontend production build. The repository intentionall
 - Configure backups, database migrations, logs, metrics and alerting.
 - Implement/enable the concrete payment, email/SMS/WhatsApp/push and video providers before exposing those channels to customers.
 - Run integration/E2E tests against real infrastructure before production release.
+
+## Account email configuration
+
+Institute signup verification, teacher/student/parent invitations, and password reset links require SMTP settings (`MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_SMTP_AUTH`, `MAIL_SMTP_STARTTLS`, and `MAIL_FROM`). Configure `SIGNUP_VERIFICATION_URL`, `INVITATION_ACCEPT_URL`, and `PASSWORD_RESET_URL` to the public frontend routes. Password reset links are single-use, expire after 30 minutes, and revoke existing refresh tokens after a successful reset. Reset requests return a generic response to avoid confirming whether an email belongs to an active account. SMTP must be configured and tested before enabling these flows for customers.
+
+## Roles and demo-account safety
+
+Institute owners and administrators with `roles.manage` can create custom roles from the Roles & Permissions workspace. A custom role can receive only permissions already held by the manager; platform permissions and role/user/institute-settings administration permissions are never assignable. Built-in roles are protected, and a custom role cannot be deleted while it is assigned to users.
+
+The historical development migrations seed a predictable `demo` institute and demo credentials. The API now disables that tenant and its seeded owner/student accounts on startup unless `DEMO_ACCOUNTS_ENABLED=true` is explicitly set. Keep this disabled in production. For a fresh local development database only, opt in before starting the API. If the guard has already disabled an existing demo tenant, restore it deliberately in a local development database before enabling it; the guard does not automatically reactivate disabled accounts.
+
+Public login, institute signup/verification, invitation acceptance and password-reset endpoints use shared Redis-backed atomic per-IP counters with endpoint-specific 15-minute windows. Requests above the configured limits receive HTTP 429 and `Retry-After`. Authentication endpoints fail closed with HTTP 503 if Redis is unavailable, so Redis must be reachable by every API instance. The filter keys limits using the socket peer address and does not trust caller-supplied `X-Forwarded-For`; configure a trusted reverse proxy or edge rate limit when deployed behind a load balancer, and verify client-IP handling in that environment.

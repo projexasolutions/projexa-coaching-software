@@ -1,4 +1,12 @@
 spring:
+  mail:
+    host: ${MAIL_HOST:}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail.smtp.auth: ${MAIL_SMTP_AUTH:true}
+      mail.smtp.starttls.enable: ${MAIL_SMTP_STARTTLS:true}
   application:
     name: projexa-coaching-api
   datasource:
@@ -31,7 +39,19 @@ management:
         include: health,info,metrics
 
 app:
+  demo-accounts:
+    enabled: ${DEMO_ACCOUNTS_ENABLED:false}
   frontend-url: ${FRONTEND_URL:http://localhost:5173}
+  signup:
+    verification-url: ${SIGNUP_VERIFICATION_URL:http://localhost:5173/verify-institute}
+    verification-minutes: ${SIGNUP_VERIFICATION_MINUTES:30}
+  mail:
+    from: ${MAIL_FROM:no-reply@projexa.local}
+  invitation:
+    accept-url: ${INVITATION_ACCEPT_URL:http://localhost:5173/accept-invitation}
+    expiry-minutes: ${INVITATION_EXPIRY_MINUTES:4320}
+  password-reset:
+    url: ${PASSWORD_RESET_URL:http://localhost:5173/reset-password}
   jwt:
     secret: ${JWT_SECRET}
     access-token-minutes: 15
