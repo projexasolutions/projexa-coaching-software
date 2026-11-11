@@ -55,11 +55,11 @@ public class RoleManagementService {
     }
 
     @Transactional
-    public UUID create(UUID tenantId, String rawName, String rawDescription, List<String> requested) {
+    public UUID create(UUID tenantId, UUID actorId, String rawName, String rawDescription, List<String> requested) {
         String name = clean(rawName, 80, "Role name");
         String description = rawDescription == null ? null : rawDescription.trim();
         if (description != null && description.length() > 300) throw new IllegalArgumentException("Description is too long.");
-        List<String> codes = validatePermissions(requested);
+        List<String> codes = validatePermissions(actorId, requested);
         String code = "CUSTOM_" + UUID.randomUUID().toString().replace("-", "").substring(0, 12).toUpperCase(Locale.ROOT);
         UUID roleId = db.queryForObject("""
             insert into roles(tenant_id,name,code,description,system_role)
@@ -70,14 +70,14 @@ public class RoleManagementService {
     }
 
     @Transactional
-    public void update(UUID tenantId, UUID roleId, String rawName, String rawDescription, List<String> requested) {
+    public void update(UUID tenantId, UUID actorId, UUID roleId, String rawName, String rawDescription, List<String> requested) {
         String name = clean(rawName, 80, "Role name");
         String description = rawDescription == null ? null : rawDescription.trim();
         if (description != null && description.length() > 300) throw new IllegalArgumentException("Description is too long.");
-        List<String> codes = validatePermissions(requested);
+        List<String> codes = validatePermissions(actorId, requested);
         int changed = db.update("""
             update roles set name=?,description=?,updated_at=now()
-            where id=? and tenant_id=? and system_role=false and code like 'CUSTOM_%'
+            where id=? and tenant_id=? and system_role=false and left(code,7)='CUSTOM_'
             """, name, description, roleId, tenantId);
         if (changed != 1) throw new IllegalArgumentException("Custom role not found or cannot be edited.");
         replacePermissions(roleId, codes);
@@ -88,12 +88,12 @@ public class RoleManagementService {
         int changed = db.update("""
             delete from roles
             where id=? and tenant_id=? and system_role=false and code like 'CUSTOM_%'
-              and not exists (select 1 from user_roles ur where ur.role_id=roles.id)
+              and left(code,7)='CUSTOM_' and not exists (select 1 from user_roles ur where ur.role_id=roles.id)
             """, roleId, tenantId);
         if (changed != 1) throw new IllegalArgumentException("Role is assigned to users, protected, or not found. Remove its assignments before deleting.");
     }
 
-    private List<String> validatePermissions(List<String> requested) {
+    private List<String> validatePermissions(UUID actorId, List<String> requested) {
         if (requested == null) return List.of();
         if (requested.size() > 100) throw new IllegalArgumentException("Too many permissions.");
         LinkedHashSet<String> unique = new LinkedHashSet<>();
@@ -106,8 +106,12 @@ public class RoleManagementService {
         if (unique.isEmpty()) return List.of();
         String placeholders = String.join(",", Collections.nCopies(unique.size(), "?"));
         List<Object> args = new ArrayList<>(unique);
-        String sql = "select code from permissions where code not like 'platform.%' " +
-            "and code not in ('roles.manage','users.manage','settings.manage') and code in (" + placeholders + ")";
+        String sql = "select distinct p.code from permissions p " +
+            "join role_permissions rp on rp.permission_id=p.id " +
+            "join user_roles ur on ur.role_id=rp.role_id " +
+            "where ur.user_id=? and p.code not like 'platform.%' " +
+            "and p.code not in ('roles.manage','users.manage','settings.manage') and p.code in (" + placeholders + ")";
+        args.add(0, actorId);
         List<String> allowed = db.query(sql, (rs,n) -> rs.getString(1), args.toArray());
         if (allowed.size() != unique.size()) throw new IllegalArgumentException("One or more permissions are unknown or restricted.");
         return List.copyOf(unique);
