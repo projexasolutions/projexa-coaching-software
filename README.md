@@ -61,3 +61,6 @@ CI runs API tests and the frontend production build. The repository intentionall
 - Configure backups, database migrations, logs, metrics and alerting.
 - Implement/enable the concrete payment, email/SMS/WhatsApp/push and video providers before exposing those channels to customers.
 - Run integration/E2E tests against real infrastructure before production release.
+
+
+Social Studio database migrations are V36 and V37. They are intentionally sequenced after Phase 1 authentication migrations V31–V35.
