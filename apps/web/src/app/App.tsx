@@ -193,7 +193,7 @@ export default function App(){return <BrowserRouter><Routes>
  <Route path="/accept-invitation" element={<AcceptInvitationPage/>}/>
  <Route path="/reset-password" element={<PasswordResetPage/>}/>
  <Route path="/owner/users" element={<Guard><PermissionGuard permission="users.manage"><Shell><Page title="User Access" subtitle="Invite teachers, students and parents to their secure portals."><UserInvitationsPage/></Page></Shell></PermissionGuard></Guard>}/>
- <Route path="/owner/roles" element={<Guard><PermissionGuard permission="roles.manage"><Shell><Page title="Roles & Permissions" subtitle="Create institute roles with controlled access to operational modules."><RolesPage/></Page></Shell></PermissionGuard></Guard>}/
+ <Route path="/owner/roles" element={<Guard><PermissionGuard permission="roles.manage"><Shell><Page title="Roles & Permissions" subtitle="Create institute roles with controlled access to operational modules."><RolesPage/></Page></Shell></PermissionGuard></Guard>}/>
  <Route path="/owner" element={<Guard><Shell><Page title="Command Center" subtitle="Live operational view of your institute."><LiveDashboard/></Page></Shell></Guard>}/>
  <Route path="/owner/students" element={<Guard><Shell><Page title="Students" subtitle="Manage student records and operational data."><LiveStudentsPage/></Page></Shell></Guard>}/>
  <Route path="/owner/students/:id" element={<Guard><Shell><Page title="Student Profile" subtitle="Live student record and fee ledger."><Profile/></Page></Shell></Guard>}/>
