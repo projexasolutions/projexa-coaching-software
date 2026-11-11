@@ -2,67 +2,45 @@ package com.projexa.coaching.auth;
 
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.Test;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
+
+import java.sql.DriverManager;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
-@Testcontainers(disabledWithoutDocker = true)
 class PhaseOnePostgresMigrationTest {
-    @Container
-    static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:17-alpine")
-        .withDatabaseName("projexa_phase1")
-        .withUsername("projexa")
-        .withPassword("integration-test-only");
-
     @Test
-    void allMigrationsIncludingPhaseOneAuthMigrationsApplyToFreshPostgres() {
+    void allMigrationsIncludingPhaseOneAuthMigrationsApplyToFreshPostgres() throws Exception {
+        String url = System.getenv("PHASE1_TEST_DATABASE_URL");
+        assumeTrue(url != null && !url.isBlank(), "PostgreSQL integration service is configured in CI.");
+
+        String username = System.getenv().getOrDefault("PHASE1_TEST_DATABASE_USERNAME", "projexa");
+        String password = System.getenv().getOrDefault("PHASE1_TEST_DATABASE_PASSWORD", "integration-test-only");
         Flyway flyway = Flyway.configure()
-            .dataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())
+            .dataSource(url, username, password)
             .locations("classpath:db/migration")
             .cleanDisabled(true)
             .load();
 
         var result = flyway.migrate();
-
         assertTrue(result.success);
         assertTrue(flyway.info().applied().length >= 35);
         assertEquals("35", flyway.info().current().getVersion().getVersion());
 
-        try (var connection = postgres.createConnection("");
+        try (var connection = DriverManager.getConnection(url, username, password);
              var statement = connection.createStatement()) {
-            assertTrue(tableExists(statement, "institute_signup_verifications"));
-            assertTrue(tableExists(statement, "account_invitations"));
-            assertTrue(tableExists(statement, "password_reset_tokens"));
-            assertTrue(columnExists(statement, "account_invitations", "revoked_at"));
-            assertTrue(permissionExists(statement, "users.manage"));
-            assertTrue(permissionExists(statement, "roles.manage"));
-        } catch (Exception exception) {
-            fail("Could not verify Phase 1 schema after Flyway migration", exception);
+            assertTrue(exists(statement, "select exists(select 1 from information_schema.tables where table_schema='public' and table_name='institute_signup_verifications')"));
+            assertTrue(exists(statement, "select exists(select 1 from information_schema.tables where table_schema='public' and table_name='account_invitations')"));
+            assertTrue(exists(statement, "select exists(select 1 from information_schema.tables where table_schema='public' and table_name='password_reset_tokens')"));
+            assertTrue(exists(statement, "select exists(select 1 from information_schema.columns where table_schema='public' and table_name='account_invitations' and column_name='revoked_at')"));
+            assertTrue(exists(statement, "select exists(select 1 from permissions where code='users.manage')"));
+            assertTrue(exists(statement, "select exists(select 1 from permissions where code='roles.manage')"));
         }
     }
 
-    private boolean tableExists(java.sql.Statement statement, String table) throws Exception {
-        try (var result = statement.executeQuery(
-            "select exists(select 1 from information_schema.tables where table_schema='public' and table_name='" + table + "')")) {
-            result.next();
-            return result.getBoolean(1);
-        }
-    }
-
-    private boolean columnExists(java.sql.Statement statement, String table, String column) throws Exception {
-        try (var result = statement.executeQuery(
-            "select exists(select 1 from information_schema.columns where table_schema='public' and table_name='" + table + "' and column_name='" + column + "')")) {
-            result.next();
-            return result.getBoolean(1);
-        }
-    }
-
-    private boolean permissionExists(java.sql.Statement statement, String code) throws Exception {
-        try (var result = statement.executeQuery(
-            "select exists(select 1 from permissions where code='" + code + "')")) {
-            result.next();
+    private boolean exists(java.sql.Statement statement, String sql) throws Exception {
+        try (var result = statement.executeQuery(sql)) {
+            assertTrue(result.next());
             return result.getBoolean(1);
         }
     }
