@@ -60,9 +60,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                         join role_permissions rp on rp.role_id = r.id
                         join permissions p on p.id = rp.permission_id
                         join users u on u.id = ur.user_id
+                        join tenants t on t.id = u.tenant_id
                         where ur.user_id = ?
                           and u.tenant_id = ?
                           and u.status = 'ACTIVE'
+                          and t.status = 'ACTIVE'
                           and (r.tenant_id is null or r.tenant_id = ?)
                     ) authorities
                     order by authority
