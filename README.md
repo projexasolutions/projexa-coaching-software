@@ -20,7 +20,7 @@ Business events are designed for an outbox -> broker -> automation/notification 
 
 ## Implemented domains
 
-Authentication/RBAC, tenant isolation, academic configuration, students/parents/teachers, enrollments, attendance, timetable, homework, question bank, objective exams, automatic scoring, results, finance, notifications, communication, video-session abstraction, admissions CRM, support tickets, automation rules/runs, reports, AI-ready operational signals, Social Studio content planning and optional AI caption drafting, audit/document/outbox infrastructure.
+Authentication/RBAC, tenant isolation, academic configuration, students/parents/teachers, enrollments, attendance, timetable, homework, question bank, objective exams, automatic scoring, results, finance, notifications, communication, video-session abstraction, admissions CRM, support tickets, automation rules/runs, reports, AI-ready operational signals, audit/document/outbox infrastructure.
 
 ## Security rules
 
@@ -42,10 +42,6 @@ Authentication/RBAC, tenant isolation, academic configuration, students/parents/
 
 Development seed credentials are documented in the migration and login screen. Replace them before any shared deployment.
 
-### Social Studio
-
-Social Studio stores tenant-scoped social content drafts and approval/planning status. To enable AI caption drafting, set `OPENAI_API_KEY` on the API server; optionally set `OPENAI_MODEL` (defaults to `gpt-4o-mini`). Keep provider keys server-side and never expose them to the browser. Meta account connection and live publishing are not enabled by this planner MVP.
-
 ## Verification
 
 Run `./scripts-verify.sh` for source/migration static checks.
@@ -62,9 +58,24 @@ CI runs API tests and the frontend production build. The repository intentionall
 - Implement/enable the concrete payment, email/SMS/WhatsApp/push and video providers before exposing those channels to customers.
 - Run integration/E2E tests against real infrastructure before production release.
 
+## Account email configuration
 
-Social Studio database migrations are V36 and V37. They are intentionally sequenced after Phase 1 authentication migrations V31–V35.
+Institute signup verification, teacher/student/parent invitations, and password reset links require SMTP settings (`MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_SMTP_AUTH`, `MAIL_SMTP_STARTTLS`, and `MAIL_FROM`). Configure `SIGNUP_VERIFICATION_URL`, `INVITATION_ACCEPT_URL`, and `PASSWORD_RESET_URL` to the public frontend routes. Password reset links are single-use, expire after 30 minutes, and revoke existing refresh tokens after a successful reset. Reset requests return a generic response to avoid confirming whether an email belongs to an active account. SMTP must be configured and tested before enabling these flows for customers.
 
-The Social Studio pull request is based on the Phase 1 authentication branch until Phase 1 is merged; merge Phase 1 first, then retarget this change to `main`.
+## Roles and demo-account safety
 
-CI for this dependent branch runs against the Phase 1 base branch so the full V1–V37 Flyway sequence is checked together.
+Institute owners and administrators with `roles.manage` can create custom roles from the Roles & Permissions workspace. A custom role can receive only permissions already held by the manager; platform permissions and role/user/institute-settings administration permissions are never assignable. Built-in roles are protected, and a custom role cannot be deleted while it is assigned to users.
+
+The historical development migrations seed a predictable `demo` institute and demo credentials. The API now disables that tenant and its seeded owner/student accounts on startup unless `DEMO_ACCOUNTS_ENABLED=true` is explicitly set. Keep this disabled in production. For a fresh local development database only, opt in before starting the API. If the guard has already disabled an existing demo tenant, restore it deliberately in a local development database before enabling it; the guard does not automatically reactivate disabled accounts.
+
+Public login, institute signup/verification, invitation acceptance and password-reset endpoints have a bounded per-IP, 15-minute in-process throttle with HTTP 429 and `Retry-After`. This is defense in depth for a single API process; production deployments with multiple API instances must also enforce a shared Redis or edge rate limit. The filter intentionally uses the socket peer address and does not trust caller-supplied `X-Forwarded-For` headers.
+
+
+Authentication throttling uses Redis-backed atomic counters shared across API instances. Configure the existing Redis connection for every API deployment; public authentication endpoints fail closed with HTTP 503 if the shared limiter is unavailable. The 15-minute per-IP limits are endpoint-specific. Apply an additional trusted-edge limit if the API is exposed through a proxy or gateway, and configure proxy handling so client IPs cannot be spoofed.
+
+
+### Social Studio
+
+Social Studio stores tenant-scoped social content drafts and approval/planning status. To enable AI caption drafting, set `OPENAI_API_KEY` on the API server; optionally set `OPENAI_MODEL` (defaults to `gpt-4o-mini`). Keep provider keys server-side and never expose them to the browser. Meta account connection and live publishing are not enabled by this planner MVP.
+
+Social Studio database migrations are V36 and V37, sequenced after Phase 1 authentication migrations V31–V35.
