@@ -92,12 +92,9 @@ public class RoleManagementService {
         if (unique.isEmpty()) return List.of();
         String placeholders = String.join(",", Collections.nCopies(unique.size(), "?"));
         List<Object> args = new ArrayList<>(unique);
-        List<String> allowed = db.query("""
-            select code from permissions
-            where code not like 'platform.%'
-              and code not in ('roles.manage','users.manage','settings.manage')
-              and code in (""" + placeholders + ")",
-            (rs,n) -> rs.getString(1), args.toArray());
+        String sql = "select code from permissions where code not like 'platform.%' " +
+            "and code not in ('roles.manage','users.manage','settings.manage') and code in (" + placeholders + ")";
+        List<String> allowed = db.query(sql, (rs,n) -> rs.getString(1), args.toArray());
         if (allowed.size() != unique.size()) throw new IllegalArgumentException("One or more permissions are unknown or restricted.");
         return List.copyOf(unique);
     }
@@ -109,10 +106,9 @@ public class RoleManagementService {
         List<Object> args = new ArrayList<>();
         args.add(roleId);
         args.addAll(codes);
-        db.update("""
-            insert into role_permissions(role_id,permission_id)
-            select ?,id from permissions where code in (""" + placeholders + ")
-            on conflict do nothing", args.toArray());
+        String sql = "insert into role_permissions(role_id,permission_id) " +
+            "select ?,id from permissions where code in (" + placeholders + ") on conflict do nothing";
+        db.update(sql, args.toArray());
     }
 
     private String clean(String value, int max, String label) {
