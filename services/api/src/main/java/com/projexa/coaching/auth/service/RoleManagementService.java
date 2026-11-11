@@ -5,11 +5,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
-import java.util.regex.Pattern;
 
 @Service
 public class RoleManagementService {
-    private static final Pattern CODE = Pattern.compile("[A-Z][A-Z0-9_]{2,39}");
     private static final Set<String> NEVER_ASSIGN = Set.of(
         "roles.manage", "users.manage", "settings.manage"
     );
@@ -34,7 +32,7 @@ public class RoleManagementService {
     public Map<String,Object> get(UUID tenantId, UUID roleId) {
         Map<String,Object> role = db.queryForMap("""
             select id,name,code,description,system_role
-            from roles where id=? and tenant_id=?
+            from roles where id=? and tenant_id=? and system_role=false and left(code,7)='CUSTOM_'
             """, roleId, tenantId);
         role.put("permissions", db.query("""
             select p.code from role_permissions rp
@@ -87,8 +85,7 @@ public class RoleManagementService {
     public void delete(UUID tenantId, UUID roleId) {
         int changed = db.update("""
             delete from roles
-            where id=? and tenant_id=? and system_role=false and code like 'CUSTOM_%'
-              and left(code,7)='CUSTOM_' and not exists (select 1 from user_roles ur where ur.role_id=roles.id)
+            where id=? and tenant_id=? and system_role=false and left(code,7)='CUSTOM_' and not exists (select 1 from user_roles ur where ur.role_id=roles.id)
             """, roleId, tenantId);
         if (changed != 1) throw new IllegalArgumentException("Role is assigned to users, protected, or not found. Remove its assignments before deleting.");
     }
