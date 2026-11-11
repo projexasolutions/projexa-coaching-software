@@ -61,3 +61,9 @@ CI runs API tests and the frontend production build. The repository intentionall
 ## Account email configuration
 
 Institute signup verification, teacher/student/parent invitations, and password reset links require SMTP settings (`MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_SMTP_AUTH`, `MAIL_SMTP_STARTTLS`, and `MAIL_FROM`). Configure `SIGNUP_VERIFICATION_URL`, `INVITATION_ACCEPT_URL`, and `PASSWORD_RESET_URL` to the public frontend routes. Password reset links are single-use, expire after 30 minutes, and revoke existing refresh tokens after a successful reset. Reset requests return a generic response to avoid confirming whether an email belongs to an active account. SMTP must be configured and tested before enabling these flows for customers.
+
+## Roles and demo-account safety
+
+Institute owners and administrators with `roles.manage` can create custom roles from the Roles & Permissions workspace. A custom role can receive only permissions already held by the manager; platform permissions and role/user/institute-settings administration permissions are never assignable. Built-in roles are protected, and a custom role cannot be deleted while it is assigned to users.
+
+The historical development migrations seed a predictable `demo` institute and demo credentials. The API now disables that tenant and its seeded owner/student accounts on startup unless `DEMO_ACCOUNTS_ENABLED=true` is explicitly set. Keep this disabled in production. For a fresh local development database only, opt in before starting the API. If the guard has already disabled an existing demo tenant, restore it deliberately in a local development database before enabling it; the guard does not automatically reactivate disabled accounts.
