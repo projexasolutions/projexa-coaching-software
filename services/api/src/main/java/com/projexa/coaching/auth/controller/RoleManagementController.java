@@ -42,6 +42,24 @@ public class RoleManagementController {
         return ResponseEntity.noContent().build();
     }
 
+    @GetMapping("/{roleId}/users")
+    public Map<String,Object> users(@PathVariable UUID roleId) {
+        UUID tenantId = TenantContextHolder.getRequired();
+        return Map.of("users", roles.users(tenantId), "assignedUserIds", roles.assignedUsers(tenantId, roleId));
+    }
+
+    @PostMapping("/{roleId}/users/{userId}")
+    public ResponseEntity<Void> assignUser(@PathVariable UUID roleId, @PathVariable UUID userId) {
+        roles.assignUser(TenantContextHolder.getRequired(), roleId, userId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/{roleId}/users/{userId}")
+    public ResponseEntity<Void> unassignUser(@PathVariable UUID roleId, @PathVariable UUID userId) {
+        roles.unassignUser(TenantContextHolder.getRequired(), roleId, userId);
+        return ResponseEntity.noContent().build();
+    }
+
     @DeleteMapping("/{roleId}")
     public ResponseEntity<Void> delete(@PathVariable UUID roleId) {
         roles.delete(TenantContextHolder.getRequired(), roleId);
