@@ -4,23 +4,38 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.concurrent.ConcurrentHashMap;
+import java.security.MessageDigest;
+import java.util.HexFormat;
+import java.util.List;
 
 /**
- * Per-process IP throttling for public authentication endpoints.
- * Deployments with multiple API instances should additionally enforce a shared
- * edge/Redis rate limit; this filter is a local defense-in-depth layer.
+ * Shared IP throttling for public authentication endpoints.
+ * Redis stores counters across API instances. If the limiter is unavailable,
+ * authentication endpoints fail closed rather than silently losing protection.
  */
 @Component
 public class AuthRateLimitFilter extends OncePerRequestFilter {
     private static final long WINDOW_MS = 15 * 60 * 1000L;
-    private static final int MAX_BUCKETS = 20_000;
-    private final ConcurrentHashMap<String, Bucket> buckets = new ConcurrentHashMap<>();
+    private static final DefaultRedisScript<Long> INCREMENT_SCRIPT = new DefaultRedisScript<>(
+        "local count = redis.call('INCR', KEYS[1]); " +
+        "if count == 1 then redis.call('PEXPIRE', KEYS[1], ARGV[1]); end; " +
+        "return count",
+        Long.class
+    );
+
+    private final StringRedisTemplate redis;
+
+    public AuthRateLimitFilter(StringRedisTemplate redis) {
+        this.redis = redis;
+    }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
@@ -31,23 +46,19 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
             return;
         }
 
-        long now = System.currentTimeMillis();
-        String key = request.getRemoteAddr() + "|" + request.getRequestURI();
-        if (buckets.size() >= MAX_BUCKETS) {
-            buckets.entrySet().removeIf(entry -> now - entry.getValue().startedAt >= WINDOW_MS);
-        }
-        if (buckets.size() >= MAX_BUCKETS) {
-            reject(response);
-            return;
-        }
-
-        Bucket bucket = buckets.compute(key, (ignored, current) -> {
-            if (current == null || now - current.startedAt >= WINDOW_MS) return new Bucket(now, 1);
-            current.count++;
-            return current;
-        });
-        if (bucket.count > limit) {
-            reject(response);
+        try {
+            String key = "projexa:auth-rate:" + digest(request.getRemoteAddr()) + ":" + request.getRequestURI();
+            Long count = redis.execute(INCREMENT_SCRIPT, List.of(key), Long.toString(WINDOW_MS));
+            if (count == null) {
+                unavailable(response);
+                return;
+            }
+            if (count > limit) {
+                reject(response);
+                return;
+            }
+        } catch (RuntimeException ex) {
+            unavailable(response);
             return;
         }
         chain.doFilter(request, response);
@@ -66,6 +77,15 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
         };
     }
 
+    private String digest(String value) {
+        try {
+            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
+                .digest(value.getBytes(StandardCharsets.UTF_8)));
+        } catch (Exception ex) {
+            throw new IllegalStateException("Unable to fingerprint client address", ex);
+        }
+    }
+
     private void reject(HttpServletResponse response) throws IOException {
         response.setStatus(429);
         response.setCharacterEncoding(StandardCharsets.UTF_8.name());
@@ -74,9 +94,11 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
         response.getWriter().write("{\"error\":{\"code\":\"RATE_LIMITED\",\"message\":\"Too many requests. Please try again later.\"}}");
     }
 
-    private static final class Bucket {
-        private final long startedAt;
-        private int count;
-        private Bucket(long startedAt, int count) { this.startedAt = startedAt; this.count = count; }
+    private void unavailable(HttpServletResponse response) throws IOException {
+        response.setStatus(HttpStatus.SERVICE_UNAVAILABLE.value());
+        response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+        response.setContentType("application/json");
+        response.setHeader("Retry-After", "60");
+        response.getWriter().write("{\"error\":{\"code\":\"AUTH_PROTECTION_UNAVAILABLE\",\"message\":\"Authentication is temporarily unavailable. Please try again shortly.\"}}");
     }
 }
