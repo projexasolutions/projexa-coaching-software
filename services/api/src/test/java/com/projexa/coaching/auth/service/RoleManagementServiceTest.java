@@ -62,4 +62,21 @@ class RoleManagementServiceTest {
         assertThrows(IllegalArgumentException.class,()->service.delete(tenant,role));
         verify(db).update(contains("tenant_id=?"),eq(role),eq(tenant));
     }
+
+    @Test
+    void assigningCustomRoleRequiresRoleAndUserToBelongToSameTenant() {
+        UUID tenant=UUID.randomUUID(), role=UUID.randomUUID(), user=UUID.randomUUID();
+        when(db.queryForObject(contains("from roles"),eq(Integer.class),eq(role),eq(tenant))).thenReturn(1);
+        when(db.queryForObject(contains("from users"),eq(Integer.class),eq(user),eq(tenant))).thenReturn(1);
+        service.assignUser(tenant,role,user);
+        verify(db).update(contains("insert into user_roles"),eq(user),eq(role));
+    }
+
+    @Test
+    void customRoleAssignmentRejectsRoleFromAnotherTenant() {
+        UUID tenant=UUID.randomUUID(), role=UUID.randomUUID(), user=UUID.randomUUID();
+        when(db.queryForObject(contains("from roles"),eq(Integer.class),eq(role),eq(tenant))).thenReturn(0);
+        assertThrows(IllegalArgumentException.class,()->service.assignUser(tenant,role,user));
+        verify(db,never()).update(anyString(),any(),any());
+    }
 }
