@@ -7,6 +7,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
@@ -30,14 +31,14 @@ public class RoleManagementController {
     }
 
     @PostMapping
-    public ResponseEntity<Map<String,UUID>> create(@Valid @RequestBody RoleRequest request) {
-        UUID id = roles.create(TenantContextHolder.getRequired(), request.name(), request.description(), request.permissions());
+    public ResponseEntity<Map<String,UUID>> create(@Valid @RequestBody RoleRequest request, Authentication auth) {
+        UUID id = roles.create(TenantContextHolder.getRequired(), UUID.fromString(auth.getName()), request.name(), request.description(), request.permissions());
         return ResponseEntity.status(201).body(Map.of("id", id));
     }
 
     @PutMapping("/{roleId}")
-    public ResponseEntity<Void> update(@PathVariable UUID roleId, @Valid @RequestBody RoleRequest request) {
-        roles.update(TenantContextHolder.getRequired(), roleId, request.name(), request.description(), request.permissions());
+    public ResponseEntity<Void> update(@PathVariable UUID roleId, @Valid @RequestBody RoleRequest request, Authentication auth) {
+        roles.update(TenantContextHolder.getRequired(), UUID.fromString(auth.getName()), roleId, request.name(), request.description(), request.permissions());
         return ResponseEntity.noContent().build();
     }
 
