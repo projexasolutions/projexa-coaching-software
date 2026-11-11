@@ -66,3 +66,5 @@ CI runs API tests and the frontend production build. The repository intentionall
 Social Studio database migrations are V36 and V37. They are intentionally sequenced after Phase 1 authentication migrations V31–V35.
 
 The Social Studio pull request is based on the Phase 1 authentication branch until Phase 1 is merged; merge Phase 1 first, then retarget this change to `main`.
+
+CI for this dependent branch runs against the Phase 1 base branch so the full V1–V37 Flyway sequence is checked together.
