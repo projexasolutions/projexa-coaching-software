@@ -15,6 +15,24 @@ jobs:
 
   api:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: projexa_phase1
+          POSTGRES_USER: projexa
+          POSTGRES_PASSWORD: integration-test-only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U projexa -d projexa_phase1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      PHASE1_TEST_DATABASE_URL: jdbc:postgresql://localhost:5432/projexa_phase1
+      PHASE1_TEST_DATABASE_USERNAME: projexa
+      PHASE1_TEST_DATABASE_PASSWORD: integration-test-only
     defaults:
       run:
         working-directory: services/api
