@@ -72,7 +72,7 @@ public class RoleManagementService {
         String name = clean(rawName, 80, "Role name");
         String description = rawDescription == null ? null : rawDescription.trim();
         if (description != null && description.length() > 300) throw new IllegalArgumentException("Description is too long.");
-        List<String> codes = validatePermissions(actorId, requested);
+        List<String> codes = validatePermissions(tenantId, actorId, requested);
         int changed = db.update("""
             update roles set name=?,description=?,updated_at=now()
             where id=? and tenant_id=? and system_role=false and left(code,7)='CUSTOM_'
