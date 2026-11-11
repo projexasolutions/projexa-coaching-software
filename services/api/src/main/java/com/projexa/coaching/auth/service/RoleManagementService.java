@@ -31,6 +31,20 @@ public class RoleManagementService {
     }
 
     @Transactional(readOnly = true)
+    public Map<String,Object> get(UUID tenantId, UUID roleId) {
+        Map<String,Object> role = db.queryForMap("""
+            select id,name,code,description,system_role
+            from roles where id=? and tenant_id=?
+            """, roleId, tenantId);
+        role.put("permissions", db.query("""
+            select p.code from role_permissions rp
+            join permissions p on p.id=rp.permission_id
+            where rp.role_id=? order by p.code
+            """, (rs,n) -> rs.getString(1), roleId));
+        return role;
+    }
+
+    @Transactional(readOnly = true)
     public List<Map<String,Object>> permissions() {
         return db.queryForList("""
             select code,description from permissions
