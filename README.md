@@ -20,7 +20,7 @@ Business events are designed for an outbox -> broker -> automation/notification 
 
 ## Implemented domains
 
-Authentication/RBAC, tenant isolation, academic configuration, students/parents/teachers, enrollments, attendance, timetable, homework, question bank, objective exams, automatic scoring, results, finance, notifications, communication, video-session abstraction, admissions CRM, support tickets, automation rules/runs, reports, AI-ready operational signals, audit/document/outbox infrastructure.
+Authentication/RBAC, tenant isolation, academic configuration, students/parents/teachers, enrollments, attendance, timetable, homework, question bank, objective exams, automatic scoring, results, finance, notifications, communication, video-session abstraction, admissions CRM, support tickets, automation rules/runs, reports, AI-ready operational signals, Social Studio content planning and optional AI caption drafting, audit/document/outbox infrastructure.
 
 ## Security rules
 
@@ -41,6 +41,10 @@ Authentication/RBAC, tenant isolation, academic configuration, students/parents/
 5. Run the web app from `apps/web` with `npm install && npm run dev`.
 
 Development seed credentials are documented in the migration and login screen. Replace them before any shared deployment.
+
+### Social Studio
+
+Social Studio stores tenant-scoped social content drafts and approval/planning status. To enable AI caption drafting, set `OPENAI_API_KEY` on the API server; optionally set `OPENAI_MODEL` (defaults to `gpt-4o-mini`). Keep provider keys server-side and never expose them to the browser. Meta account connection and live publishing are not enabled by this planner MVP.
 
 ## Verification
 
