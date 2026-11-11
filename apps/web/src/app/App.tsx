@@ -8,6 +8,7 @@ import VerifyInstitutePage from '../features/auth/VerifyInstitutePage';
 import AcceptInvitationPage from '../features/auth/AcceptInvitationPage';
 import PasswordResetPage from '../features/auth/PasswordResetPage';
 import UserInvitationsPage from '../features/auth/UserInvitationsPage';
+import RolesPage from '../features/RolesPage';
 import {useAuth} from '../features/auth/authStore';
 import {LiveDashboard,LiveStudentsPage,LiveStudentProfile,LiveAcademicsPage,LiveAttendancePage,LiveFinancePage} from '../features/Phase1Pages';
 import AcademicsWorkspacePage from '../features/AcademicsWorkspacePage';
@@ -56,6 +57,7 @@ const navGroups:any[] = [
     items:[
       ['/owner/admissions','Admissions CRM',PeopleRounded],
       ['/owner/users','User Invitations',PeopleRounded],
+      ['/owner/roles','Roles & Permissions',SettingsRounded],
       ['/owner/communication','Communication',ChatRounded],
       ['/owner/notifications','Notifications',NotificationsRounded],
       ['/portal','Parent / Student Portal',PeopleRounded],
@@ -77,7 +79,13 @@ const navGroups:any[] = [
 function Shell({children}:{children:ReactNode}){
  const session=useAuth(s=>s.session),logout=useAuth(s=>s.logout);
  const [mobile,setMobile]=useState(false),[anchor,setAnchor]=useState<HTMLElement|null>(null);
- const visibleNavGroups=navGroups.map(group=>({...group,items:group.items.filter((item:any)=>!String(item[0]).startsWith('/admin/')||session?.roles?.includes('PLATFORM_ADMIN'))})).filter(group=>group.items.length);
+ const visibleNavGroups=navGroups.map(group=>({...group,items:group.items.filter((item:any)=>{
+   const path=String(item[0]);
+   if(path.startsWith('/admin/')) return session?.roles?.includes('PLATFORM_ADMIN');
+   if(path==='/owner/roles') return session?.permissions?.includes('roles.manage');
+   if(path==='/owner/users') return session?.permissions?.includes('users.manage')||session?.permissions?.includes('settings.manage');
+   return true;
+  })})).filter(group=>group.items.length);
 
  const side=<Box sx={{height:'100%',display:'flex',flexDirection:'column',bgcolor:'#fff'}}>
   <Toolbar sx={{minHeight:'68px !important',px:2.25}}>
@@ -89,7 +97,7 @@ function Shell({children}:{children:ReactNode}){
   </Toolbar>
   <Divider sx={{borderColor:'#eef2f7'}}/>
   <Box sx={{p:1.25,flex:1,overflowY:'auto'}}>
-   {navGroups.map((group:any)=><Box key={group.label} sx={{mb:1.7}}>
+   {visibleNavGroups.map((group:any)=><Box key={group.label} sx={{mb:1.7}}>
     <Typography sx={{px:1.1,mb:.65,fontSize:9.5,fontWeight:900,color:'#94a3b8',letterSpacing:1.15}}>{group.label}</Typography>
     <List disablePadding>
      {group.items.map(([to,label,Icon]:any)=><ListItemButton key={to} component={NavLink} to={to} onClick={()=>setMobile(false)}
@@ -173,6 +181,7 @@ function PortalShell({children}:{children:ReactNode}){
  </Box>;
 }
 function PlatformGuard({children}:{children:ReactNode}){const session=useAuth(s=>s.session);return session?.roles?.includes('PLATFORM_ADMIN')?children:<Navigate to="/owner" replace/>}
+function PermissionGuard({permission,children}:{permission:string;children:ReactNode}){const session=useAuth(s=>s.session);return session?.permissions?.includes(permission)?children:<Navigate to="/owner" replace/>}
 function Profile(){const {id}=useParams();return <LiveStudentProfile id={id||''}/>}
 
 function Placeholder({title}:{title:string}){return <Box sx={{p:5,textAlign:'center',bgcolor:'#fff',border:'1px solid #e5e7eb',borderRadius:3}}><Typography sx={{fontSize:22,fontWeight:900}}>{title}</Typography><Typography sx={{color:'#64748b',mt:1}}>This module is scheduled for the next implementation stage. Phase 1 operational modules are live.</Typography><Chip label="Phase 1 in progress" sx={{mt:2}}/></Box>}
@@ -183,7 +192,8 @@ export default function App(){return <BrowserRouter><Routes>
  <Route path="/verify-institute" element={<VerifyInstitutePage/>}/>
  <Route path="/accept-invitation" element={<AcceptInvitationPage/>}/>
  <Route path="/reset-password" element={<PasswordResetPage/>}/>
- <Route path="/owner/users" element={<Guard><Shell><Page title="User Access" subtitle="Invite teachers, students and parents to their secure portals."><UserInvitationsPage/></Page></Shell></Guard>}/>
+ <Route path="/owner/users" element={<Guard><PermissionGuard permission="users.manage"><Shell><Page title="User Access" subtitle="Invite teachers, students and parents to their secure portals."><UserInvitationsPage/></Page></Shell></PermissionGuard></Guard>}/>
+ <Route path="/owner/roles" element={<Guard><PermissionGuard permission="roles.manage"><Shell><Page title="Roles & Permissions" subtitle="Create institute roles with controlled access to operational modules."><RolesPage/></Page></Shell></PermissionGuard></Guard>}/
  <Route path="/owner" element={<Guard><Shell><Page title="Command Center" subtitle="Live operational view of your institute."><LiveDashboard/></Page></Shell></Guard>}/>
  <Route path="/owner/students" element={<Guard><Shell><Page title="Students" subtitle="Manage student records and operational data."><LiveStudentsPage/></Page></Shell></Guard>}/>
  <Route path="/owner/students/:id" element={<Guard><Shell><Page title="Student Profile" subtitle="Live student record and fee ledger."><Profile/></Page></Shell></Guard>}/>
