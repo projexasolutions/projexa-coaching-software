@@ -16,9 +16,8 @@ class AuthRateLimitFilterTest {
 
     @Test
     void signupIsLimitedByTheSharedRedisCounter() throws Exception {
-        org.mockito.stubbing.OngoingStubbing<Long> counter =
-            when(redis.execute(any(DefaultRedisScript.class), anyList(), anyString()));
-        counter.thenReturn(1L, 2L, 3L, 4L, 5L, 6L);
+        doReturn(1L, 2L, 3L, 4L, 5L, 6L)
+            .when(redis).execute(any(DefaultRedisScript.class), anyList(), anyString());
         jakarta.servlet.FilterChain chain = mock(jakarta.servlet.FilterChain.class);
 
         for (int i=0;i<5;i++) {
