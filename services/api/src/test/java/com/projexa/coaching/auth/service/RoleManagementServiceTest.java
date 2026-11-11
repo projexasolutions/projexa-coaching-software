@@ -1,12 +1,14 @@
 package com.projexa.coaching.auth.service;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 class RoleManagementServiceTest {
@@ -42,5 +44,22 @@ class RoleManagementServiceTest {
         assertThrows(IllegalArgumentException.class, () ->
             service.create(UUID.randomUUID(), UUID.randomUUID(), "  ", null, List.of()));
         verifyNoInteractions(db);
+    }
+
+    @Test
+    void roleLookupIsTenantScopedAndDoesNotReturnAnotherInstitutesRole() {
+        UUID tenant=UUID.randomUUID(), role=UUID.randomUUID();
+        when(db.queryForMap(anyString(),eq(role),eq(tenant))).thenThrow(new EmptyResultDataAccessException(1));
+        assertThrows(EmptyResultDataAccessException.class,()->service.get(tenant,role));
+        verify(db).queryForMap(contains("where id=? and tenant_id=?"),eq(role),eq(tenant));
+        verifyNoMoreInteractions(db);
+    }
+
+    @Test
+    void deleteRequiresTenantScopeAndRefusesAssignedRoles() {
+        UUID tenant=UUID.randomUUID(), role=UUID.randomUUID();
+        when(db.update(anyString(),eq(role),eq(tenant))).thenReturn(0);
+        assertThrows(IllegalArgumentException.class,()->service.delete(tenant,role));
+        verify(db).update(contains("tenant_id=?"),eq(role),eq(tenant));
     }
 }
