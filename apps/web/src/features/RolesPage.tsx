@@ -1,6 +1,6 @@
 import {useCallback,useEffect,useState} from 'react';
 import {Alert,Box,Button,Card,CardContent,Checkbox,Chip,Dialog,DialogActions,DialogContent,DialogTitle,FormControlLabel,FormGroup,Stack,TextField,Typography} from '@mui/material';
-import {api} from '../../services';
+import {api} from '../services';
 
 type Role={id:string;name:string;code:string;description?:string;system_role:boolean;permission_count:number};
 type Permission={code:string;description:string};
