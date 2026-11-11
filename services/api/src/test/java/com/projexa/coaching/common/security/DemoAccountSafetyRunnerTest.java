@@ -14,8 +14,8 @@ class DemoAccountSafetyRunnerTest {
     void demoTenantAndSeededAccountsAreDisabledByDefault() throws Exception {
         var runner = new DemoAccountSafetyRunner(db, false);
         assertDoesNotThrow(() -> runner.run(new DefaultApplicationArguments(new String[0])));
-        verify(db).update(contains("update users set status='DISABLED'"), any(Object[].class));
-        verify(db).update(contains("update tenants set status='DISABLED'"), any(Object[].class));
+        verify(db).update(contains("update users set status='DISABLED'"));
+        verify(db).update(contains("update tenants set status='DISABLED'"));
     }
 
     @Test
