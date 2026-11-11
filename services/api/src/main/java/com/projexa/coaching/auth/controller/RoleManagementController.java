@@ -24,6 +24,11 @@ public class RoleManagementController {
     @GetMapping("/permissions")
     public List<Map<String,Object>> permissions() { return roles.permissions(); }
 
+    @GetMapping("/{roleId}")
+    public Map<String,Object> get(@PathVariable UUID roleId) {
+        return roles.get(TenantContextHolder.getRequired(), roleId);
+    }
+
     @PostMapping
     public ResponseEntity<Map<String,UUID>> create(@Valid @RequestBody RoleRequest request) {
         UUID id = roles.create(TenantContextHolder.getRequired(), request.name(), request.description(), request.permissions());
