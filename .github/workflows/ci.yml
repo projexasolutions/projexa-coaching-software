@@ -3,7 +3,7 @@ on:
   push:
     branches: [main, develop, "ui/**", "release/**"]
   pull_request:
-    branches: [main, develop]
+    branches: [main, develop, "feat/phase-1-auth-access"]
 
 jobs:
   static:
