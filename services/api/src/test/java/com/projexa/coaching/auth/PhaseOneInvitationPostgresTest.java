@@ -49,6 +49,7 @@ class PhaseOneInvitationPostgresTest {
         String[] tables = {"teachers", "students", "parents"};
         String[] emails = new String[roles.length];
         UUID[] profiles = new UUID[roles.length];
+        String[] tokens = new String[roles.length];
         for (int i = 0; i < roles.length; i++) {
             emails[i] = roles[i].toLowerCase() + "-" + suffix + "@example.test";
             if ("teachers".equals(tables[i])) {
@@ -76,7 +77,8 @@ class PhaseOneInvitationPostgresTest {
             String body = messages.getAllValues().get(i).getContent().toString();
             var matcher = Pattern.compile("[?&]token=([A-Za-z0-9_-]+)").matcher(body);
             assertTrue(matcher.find(), "Invitation email must contain a raw single-use token");
-            service.accept(matcher.group(1), "new-portal-password-123");
+            tokens[i] = matcher.group(1);
+            service.accept(tokens[i], "new-portal-password-123");
             assertEquals(1, db.queryForObject("select count(*) from " + tables[i] +
                 " where id=? and tenant_id=? and user_id is not null", Integer.class, profiles[i], tenantId));
             assertEquals(1, db.queryForObject("select count(*) from users where tenant_id=? and lower(email)=? and status='ACTIVE'",
@@ -87,7 +89,6 @@ class PhaseOneInvitationPostgresTest {
                 """, Integer.class, tenantId, emails[i]));
         }
         assertThrows(IllegalArgumentException.class,
-            () -> service.accept(Pattern.compile("[?&]token=([A-Za-z0-9_-]+)")
-                .matcher(messages.getAllValues().get(0).getContent().toString()).replaceAll("$1"), "new-portal-password-123"));
+            () -> service.accept(tokens[0], "new-portal-password-123"));
     }
 }
