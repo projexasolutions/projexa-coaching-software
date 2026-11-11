@@ -90,6 +90,57 @@ public class RoleManagementService {
         if (changed != 1) throw new IllegalArgumentException("Role is assigned to users, protected, or not found. Remove its assignments before deleting.");
     }
 
+
+    @Transactional(readOnly = true)
+    public List<Map<String,Object>> users(UUID tenantId) {
+        return db.queryForList("""
+            select id,email,first_name,last_name,status
+            from users where tenant_id=? and status='ACTIVE'
+            order by first_name,last_name,email
+            """, tenantId);
+    }
+
+    @Transactional(readOnly = true)
+    public List<UUID> assignedUsers(UUID tenantId, UUID roleId) {
+        requireCustomRole(tenantId, roleId);
+        return db.query("""
+            select ur.user_id from user_roles ur
+            join users u on u.id=ur.user_id and u.tenant_id=?
+            join roles r on r.id=ur.role_id and r.tenant_id=?
+            where r.id=? order by ur.user_id
+            """, (rs,n) -> rs.getObject(1, UUID.class), tenantId, tenantId, roleId);
+    }
+
+    @Transactional
+    public void assignUser(UUID tenantId, UUID roleId, UUID userId) {
+        requireCustomRole(tenantId, roleId);
+        Integer userExists = db.queryForObject("""
+            select count(*) from users where id=? and tenant_id=? and status='ACTIVE'
+            """, Integer.class, userId, tenantId);
+        if (userExists == null || userExists != 1)
+            throw new IllegalArgumentException("Active user was not found in this institute.");
+        db.update("insert into user_roles(user_id,role_id) values(?,?) on conflict do nothing", userId, roleId);
+    }
+
+    @Transactional
+    public void unassignUser(UUID tenantId, UUID roleId, UUID userId) {
+        requireCustomRole(tenantId, roleId);
+        db.update("""
+            delete from user_roles ur using roles r
+            where ur.role_id=r.id and ur.user_id=? and r.id=? and r.tenant_id=?
+              and r.system_role=false and left(r.code,7)='CUSTOM_'
+            """, userId, roleId, tenantId);
+    }
+
+    private void requireCustomRole(UUID tenantId, UUID roleId) {
+        Integer exists = db.queryForObject("""
+            select count(*) from roles
+            where id=? and tenant_id=? and system_role=false and left(code,7)='CUSTOM_'
+            """, Integer.class, roleId, tenantId);
+        if (exists == null || exists != 1)
+            throw new IllegalArgumentException("Custom role not found or cannot be assigned.");
+    }
+
     private List<String> validatePermissions(UUID actorId, List<String> requested) {
         if (requested == null) return List.of();
         if (requested.size() > 100) throw new IllegalArgumentException("Too many permissions.");
